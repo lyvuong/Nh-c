@@ -2,59 +2,63 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root, body.theme-stage-dark {
-    --color-stage-bg: #0a0d14;
-    --color-stage-card: #121824;
-    --color-stage-cardHover: #1a2333;
-    --color-stage-border: #1f2d42;
-    --color-stage-accent: #38bdf8;
-    --color-stage-text: #f8fafc;
-    --color-stage-muted: #94a3b8;
-  }
+:root {
+  --color-stage-bg: #0a0d14;
+  --color-stage-card: #121824;
+  --color-stage-cardHover: #1a2333;
+  --color-stage-border: #1f2d42;
+  --color-stage-accent: #38bdf8;
+  --color-stage-text: #f8fafc;
+  --color-stage-muted: #94a3b8;
+}
 
-  body.theme-oled-black {
-    --color-stage-bg: #000000;
-    --color-stage-card: #0c0f14;
-    --color-stage-cardHover: #171d28;
-    --color-stage-border: #242c3b;
-    --color-stage-accent: #38bdf8;
-    --color-stage-text: #ffffff;
-    --color-stage-muted: #9ca3af;
-  }
+html.theme-stage-dark, body.theme-stage-dark {
+  --color-stage-bg: #0a0d14;
+  --color-stage-card: #121824;
+  --color-stage-cardHover: #1a2333;
+  --color-stage-border: #1f2d42;
+  --color-stage-text: #f8fafc;
+  --color-stage-muted: #94a3b8;
+}
 
-  body.theme-amber-warm {
-    --color-stage-bg: #140e07;
-    --color-stage-card: #20170e;
-    --color-stage-cardHover: #2d2114;
-    --color-stage-border: #3d2e1c;
-    --color-stage-accent: #fbbf24;
-    --color-stage-text: #fef3c7;
-    --color-stage-muted: #d97706;
-  }
+html.theme-oled-black, body.theme-oled-black {
+  --color-stage-bg: #000000;
+  --color-stage-card: #0a0d12;
+  --color-stage-cardHover: #141820;
+  --color-stage-border: #1f2633;
+  --color-stage-text: #ffffff;
+  --color-stage-muted: #9ca3af;
+}
 
-  body.theme-light-contrast {
-    --color-stage-bg: #f1f5f9;
-    --color-stage-card: #ffffff;
-    --color-stage-cardHover: #e2e8f0;
-    --color-stage-border: #cbd5e1;
-    --color-stage-accent: #0284c7;
-    --color-stage-text: #0f172a;
-    --color-stage-muted: #64748b;
-  }
+html.theme-amber-warm, body.theme-amber-warm {
+  --color-stage-bg: #130e07;
+  --color-stage-card: #1f170c;
+  --color-stage-cardHover: #2c2012;
+  --color-stage-border: #3b2c19;
+  --color-stage-text: #fef3c7;
+  --color-stage-muted: #d97706;
+}
 
-  body {
-    margin: 0;
-    padding: 0;
-    background-color: var(--color-stage-bg);
-    color: var(--color-stage-text);
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    user-select: text;
-    overflow: hidden;
-    transition: background-color 0.2s ease, color 0.2s ease;
-  }
+html.theme-light-contrast, body.theme-light-contrast {
+  --color-stage-bg: #f1f5f9;
+  --color-stage-card: #ffffff;
+  --color-stage-cardHover: #e2e8f0;
+  --color-stage-border: #cbd5e1;
+  --color-stage-text: #0f172a;
+  --color-stage-muted: #64748b;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-stage-bg);
+  color: var(--color-stage-text);
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  user-select: text;
+  overflow: hidden;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 /* Custom Stage Scrollbar */

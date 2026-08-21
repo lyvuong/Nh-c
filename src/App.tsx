@@ -70,12 +70,14 @@ export function App() {
 
   // Apply Theme & Chord Color to document
   useEffect(() => {
+    document.documentElement.className = `theme-${stageTheme}`;
     document.body.className = `theme-${stageTheme}`;
     localStorage.setItem('stagechord_theme', stageTheme);
   }, [stageTheme]);
 
   useEffect(() => {
     document.documentElement.style.setProperty('--color-stage-accent', chordColor);
+    document.body.style.setProperty('--color-stage-accent', chordColor);
     localStorage.setItem('stagechord_chord_color', chordColor);
   }, [chordColor]);
 
