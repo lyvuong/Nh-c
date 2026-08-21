@@ -14,6 +14,7 @@ import { FolderImportModal } from './components/FolderImportModal';
 import { SetlistEditorModal } from './components/SetlistEditorModal';
 import { SongEditorModal } from './components/SongEditorModal';
 import { SettingsModal } from './components/SettingsModal';
+import { applyThemeToDOM } from './lib/themeManager';
 
 export function App() {
   // IndexedDB Live Queries
@@ -68,36 +69,12 @@ export function App() {
     }
   }, [songs, activeSongId]);
 
-function hexToRgbChannels(hex: string): string {
-  const clean = hex.replace('#', '').trim();
-  if (clean.length === 3) {
-    const r = parseInt(clean[0] + clean[0], 16);
-    const g = parseInt(clean[1] + clean[1], 16);
-    const b = parseInt(clean[2] + clean[2], 16);
-    return `${r} ${g} ${b}`;
-  }
-  if (clean.length === 6) {
-    const r = parseInt(clean.slice(0, 2), 16);
-    const g = parseInt(clean.slice(2, 4), 16);
-    const b = parseInt(clean.slice(4, 6), 16);
-    return `${r} ${g} ${b}`;
-  }
-  return '56 189 248';
-}
-
-  // Apply Theme & Chord Color to document
+  // Apply Theme & Chord Color immediately to DOM
   useEffect(() => {
-    document.documentElement.className = `theme-${stageTheme}`;
-    document.body.className = `theme-${stageTheme}`;
+    applyThemeToDOM(stageTheme, chordColor);
     localStorage.setItem('stagechord_theme', stageTheme);
-  }, [stageTheme]);
-
-  useEffect(() => {
-    const rgb = hexToRgbChannels(chordColor);
-    document.documentElement.style.setProperty('--color-stage-accent', rgb);
-    document.body.style.setProperty('--color-stage-accent', rgb);
     localStorage.setItem('stagechord_chord_color', chordColor);
-  }, [chordColor]);
+  }, [stageTheme, chordColor]);
 
   useEffect(() => {
     localStorage.setItem('stagechord_prefer_flats', preferFlats.toString());
