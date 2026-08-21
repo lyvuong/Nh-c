@@ -8,7 +8,8 @@ interface ChordProViewerProps {
   zoomLevel: number;
   columnsPreference: 'auto' | 1 | 2 | 3;
   isAutoFit: boolean;
-  themeStyle?: 'stage-dark' | 'oled-black' | 'high-contrast' | 'sepia';
+  themeStyle?: string;
+  chordColor?: string;
   onChordClick?: (chord: string) => void;
 }
 
@@ -18,6 +19,7 @@ export const ChordProViewer: React.FC<ChordProViewerProps> = ({
   zoomLevel,
   columnsPreference,
   isAutoFit,
+  chordColor,
   onChordClick,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -70,7 +72,7 @@ export const ChordProViewer: React.FC<ChordProViewerProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`w-full h-full p-3 sm:p-5 flex flex-col select-text transition-colors duration-200 ${
+      className={`w-full h-full p-3 sm:p-5 flex flex-col select-text transition-colors duration-150 ${
         isAutoFit ? 'overflow-hidden' : 'overflow-y-auto'
       }`}
       style={{ fontSize: activeFontSize }}
@@ -91,7 +93,10 @@ export const ChordProViewer: React.FC<ChordProViewerProps> = ({
         {/* Badges: Key, Capo, Tempo, Time */}
         <div className="flex items-center gap-2 flex-wrap">
           {song.metadata.key && (
-            <span className="px-2.5 py-0.5 rounded-md bg-stage-cardHover border border-stage-accent/30 text-stage-accent font-mono text-xs font-bold shadow-sm">
+            <span 
+              className="px-2.5 py-0.5 rounded-md bg-stage-cardHover border border-stage-border font-mono text-xs font-bold shadow-sm"
+              style={{ color: chordColor || 'rgb(var(--color-stage-accent))' }}
+            >
               Key: {song.metadata.key}
             </span>
           )}
@@ -127,6 +132,7 @@ export const ChordProViewer: React.FC<ChordProViewerProps> = ({
           <SectionView
             key={`sec-${secIdx}`}
             section={section}
+            chordColor={chordColor}
             onChordClick={onChordClick}
           />
         ))}
@@ -137,8 +143,9 @@ export const ChordProViewer: React.FC<ChordProViewerProps> = ({
 
 const SectionView: React.FC<{
   section: SongSection;
+  chordColor?: string;
   onChordClick?: (chord: string) => void;
-}> = ({ section, onChordClick }) => {
+}> = ({ section, chordColor, onChordClick }) => {
   const isChorus = section.type === 'chorus';
   const isBridge = section.type === 'bridge';
 
@@ -146,23 +153,25 @@ const SectionView: React.FC<{
     <div
       className={`break-inside-avoid mb-4 rounded-xl transition-all ${
         isChorus
-          ? 'bg-stage-card/70 border-l-4 border-l-stage-accent pl-3.5 pr-2 py-2.5 border-t border-r border-b border-stage-border/30'
+          ? 'bg-stage-card/70 border-l-4 pl-3.5 pr-2 py-2.5 border-t border-r border-b border-stage-border/30'
           : isBridge
           ? 'bg-stage-card/40 border-l-4 border-l-amber-500 pl-3.5 pr-2 py-2 border-t border-r border-b border-stage-border/20'
           : 'pl-1 py-1'
       }`}
+      style={isChorus ? { borderLeftColor: chordColor || 'rgb(var(--color-stage-accent))' } : undefined}
     >
       {/* Section Title Header */}
       {section.title && (
         <div className="mb-2 flex items-center gap-1.5">
           <span
             className={`text-[0.75em] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md font-mono ${
-              isChorus
-                ? 'bg-stage-accent text-slate-950 shadow-sm'
-                : isBridge
+              isBridge
                 ? 'bg-amber-400 text-slate-950 shadow-sm'
-                : 'bg-stage-border/70 text-stage-muted border border-stage-border'
+                : !isChorus
+                ? 'bg-stage-border/70 text-stage-muted border border-stage-border'
+                : 'text-slate-950 shadow-sm'
             }`}
+            style={isChorus ? { backgroundColor: chordColor || 'rgb(var(--color-stage-accent))', color: '#090d16' } : undefined}
           >
             {section.title}
           </span>
@@ -175,6 +184,7 @@ const SectionView: React.FC<{
           <LineView
             key={`line-${lIdx}`}
             line={line}
+            chordColor={chordColor}
             onChordClick={onChordClick}
           />
         ))}
@@ -185,8 +195,9 @@ const SectionView: React.FC<{
 
 const LineView: React.FC<{
   line: SongLine;
+  chordColor?: string;
   onChordClick?: (chord: string) => void;
-}> = ({ line, onChordClick }) => {
+}> = ({ line, chordColor, onChordClick }) => {
   if (line.type === 'comment') {
     return (
       <div className="my-1.5 px-2.5 py-1 rounded bg-amber-500/10 border-l-2 border-amber-400 text-amber-200/90 text-[0.85em] font-mono italic">
@@ -205,6 +216,7 @@ const LineView: React.FC<{
         <TokenView
           key={`tok-${tIdx}`}
           token={token}
+          chordColor={chordColor}
           onChordClick={onChordClick}
         />
       ))}
@@ -214,8 +226,9 @@ const LineView: React.FC<{
 
 const TokenView: React.FC<{
   token: ChordToken;
+  chordColor?: string;
   onChordClick?: (chord: string) => void;
-}> = ({ token, onChordClick }) => {
+}> = ({ token, chordColor, onChordClick }) => {
   const hasChord = Boolean(token.chord && token.chord.trim().length > 0);
 
   return (
@@ -226,7 +239,8 @@ const TokenView: React.FC<{
           <button
             onClick={() => token.chord && onChordClick?.(token.chord)}
             type="button"
-            className="text-stage-accent font-mono font-black text-[0.95em] tracking-tight hover:text-cyan-300 hover:underline cursor-pointer select-none whitespace-nowrap px-0.5 rounded transition-colors"
+            className="font-mono font-black text-[0.95em] tracking-tight hover:opacity-80 hover:underline cursor-pointer select-none whitespace-nowrap px-0.5 rounded transition-colors"
+            style={{ color: chordColor || 'rgb(var(--color-stage-accent))' }}
             title={`Chord: ${token.chord}`}
           >
             {token.chord}

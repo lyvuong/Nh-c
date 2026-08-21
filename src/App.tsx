@@ -290,6 +290,8 @@ export function App() {
           capo={currentCapo}
           zoomLevel={zoomLevel}
           onZoomChange={(delta) => setZoomLevel((z) => Math.max(0.6, Math.min(1.8, z + delta)))}
+          stageTheme={stageTheme}
+          chordColor={chordColor}
         />
       )}
 
@@ -373,7 +375,8 @@ export function App() {
               zoomLevel={zoomLevel}
               columnsPreference={columnsPreference}
               isAutoFit={isAutoFit}
-              themeStyle={stageTheme as any}
+              themeStyle={stageTheme}
+              chordColor={chordColor}
             />
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-stage-muted">

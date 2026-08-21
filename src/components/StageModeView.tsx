@@ -3,7 +3,7 @@ import {
   Minimize2, 
   ChevronLeft, 
   ChevronRight, 
-  Lock,
+  Lock, 
   RotateCcw
 } from 'lucide-react';
 import type { ParsedSong } from '../lib/chordParser';
@@ -26,6 +26,8 @@ interface StageModeViewProps {
   capo?: number;
   zoomLevel: number;
   onZoomChange: (delta: number) => void;
+  stageTheme?: string;
+  chordColor?: string;
 }
 
 export const StageModeView: React.FC<StageModeViewProps> = ({
@@ -43,6 +45,8 @@ export const StageModeView: React.FC<StageModeViewProps> = ({
   onResetTranspose,
   capo = 0,
   zoomLevel,
+  stageTheme,
+  chordColor,
 }) => {
   const [wakeLockEnabled, setWakeLockEnabled] = useState(false);
   const [tempoPulse, setTempoPulse] = useState(false);
@@ -94,15 +98,18 @@ export const StageModeView: React.FC<StageModeViewProps> = ({
   }, [onNextSong, onPrevSong, onExitStageMode, onTranspose, onResetTranspose]);
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#05070a] text-slate-100 flex flex-col select-none overflow-hidden font-sans">
+    <div className="fixed inset-0 z-50 bg-stage-bg text-stage-text flex flex-col select-none overflow-hidden font-sans transition-colors duration-150">
       {/* Top Stage Bar */}
-      <div className="flex-shrink-0 bg-[#0a0f18] border-b border-slate-800 px-4 py-2 flex items-center justify-between gap-3">
+      <div className="flex-shrink-0 bg-stage-card border-b border-stage-border px-4 py-2 flex items-center justify-between gap-3 shadow-md">
         {/* Left: Setlist and Position */}
         <div className="flex items-center gap-3">
-          <span className="px-2.5 py-1 rounded bg-cyan-500/20 text-cyan-300 font-mono text-xs font-bold border border-cyan-500/30">
+          <span 
+            className="px-2.5 py-1 rounded bg-stage-cardHover font-mono text-xs font-bold border border-stage-border"
+            style={{ color: chordColor || 'rgb(var(--color-stage-accent))' }}
+          >
             {setlistName}
           </span>
-          <span className="text-xs font-mono text-slate-400 font-semibold">
+          <span className="text-xs font-mono text-stage-muted font-semibold">
             Song {songIndex + 1} of {totalSongs}
           </span>
           {wakeLockEnabled && (
@@ -117,10 +124,11 @@ export const StageModeView: React.FC<StageModeViewProps> = ({
           <div className="flex items-center gap-2">
             <span
               className={`w-3 h-3 rounded-full transition-all duration-100 ${
-                tempoPulse ? 'bg-cyan-400 scale-125 shadow-lg shadow-cyan-400' : 'bg-slate-700'
+                tempoPulse ? 'scale-125 shadow-lg' : 'opacity-40'
               }`}
+              style={{ backgroundColor: chordColor || 'rgb(var(--color-stage-accent))' }}
             />
-            <span className="text-xs font-mono text-slate-300 font-bold">
+            <span className="text-xs font-mono text-stage-text font-bold">
               {currentSong.metadata.tempo} BPM
             </span>
           </div>
@@ -129,20 +137,23 @@ export const StageModeView: React.FC<StageModeViewProps> = ({
         {/* Right: Quick Stage Controls & Exit */}
         <div className="flex items-center gap-2">
           {/* Quick Semitone Buttons with Reset */}
-          <div className="flex items-center bg-slate-900 rounded-lg border border-slate-700 p-0.5">
+          <div className="flex items-center bg-stage-cardHover rounded-lg border border-stage-border p-0.5">
             <button
               onClick={() => onTranspose(-1)}
-              className="px-2 py-1 text-xs font-mono font-bold hover:text-cyan-400 text-slate-300 active:bg-slate-800 rounded"
+              className="px-2 py-1 text-xs font-mono font-bold hover:opacity-80 text-stage-text active:bg-stage-card rounded"
               title="Transpose -1 Semitone"
             >
               -1
             </button>
-            <span className="px-1 text-[11px] font-mono text-cyan-400 font-bold">
+            <span 
+              className="px-1 text-[11px] font-mono font-bold"
+              style={{ color: chordColor || 'rgb(var(--color-stage-accent))' }}
+            >
               {currentSong.metadata.key || 'Key'}
             </span>
             <button
               onClick={() => onTranspose(1)}
-              className="px-2 py-1 text-xs font-mono font-bold hover:text-cyan-400 text-slate-300 active:bg-slate-800 rounded"
+              className="px-2 py-1 text-xs font-mono font-bold hover:opacity-80 text-stage-text active:bg-stage-card rounded"
               title="Transpose +1 Semitone"
             >
               +1
@@ -162,7 +173,7 @@ export const StageModeView: React.FC<StageModeViewProps> = ({
           {/* Exit Fullscreen Stage */}
           <button
             onClick={onExitStageMode}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-bold transition"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-bold transition cursor-pointer"
             title="Exit Stage Mode (Esc)"
           >
             <Minimize2 className="w-3.5 h-3.5" />
@@ -172,46 +183,51 @@ export const StageModeView: React.FC<StageModeViewProps> = ({
       </div>
 
       {/* Main Song Content (1-Screen Auto-Fit) */}
-      <div className="flex-1 w-full overflow-hidden p-2 sm:p-4 bg-[#070a10]">
+      <div className="flex-1 w-full overflow-hidden p-2 sm:p-4 bg-stage-bg">
         <ChordProViewer
           song={currentSong}
           capo={capo}
           zoomLevel={zoomLevel}
           columnsPreference="auto"
           isAutoFit={true}
-          themeStyle="oled-black"
+          themeStyle={stageTheme}
+          chordColor={chordColor}
         />
       </div>
 
       {/* Bottom Large Stage Footer for Pedal / Hands-Free Navigation */}
-      <div className="flex-shrink-0 bg-[#0a0f18] border-t border-slate-800/80 px-4 py-2.5 flex items-center justify-between gap-4">
-        {/* Previous Song Giant Target */}
+      <div className="flex-shrink-0 bg-stage-card border-t border-stage-border px-4 py-2.5 flex items-center justify-between gap-4">
+        {/* Previous Song Target */}
         <button
           onClick={onPrevSong}
           disabled={songIndex <= 0}
-          className="flex-1 max-w-xs h-12 flex items-center justify-center gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-30 active:scale-98 transition border border-slate-700 font-bold text-sm text-slate-200"
+          className="flex-1 max-w-xs h-12 flex items-center justify-center gap-2 rounded-xl bg-stage-cardHover hover:bg-stage-border disabled:opacity-30 active:scale-98 transition border border-stage-border font-bold text-sm text-stage-text cursor-pointer"
         >
-          <ChevronLeft className="w-5 h-5 text-cyan-400" />
+          <ChevronLeft 
+            className="w-5 h-5"
+            style={{ color: chordColor || 'rgb(var(--color-stage-accent))' }}
+          />
           <div className="text-left truncate">
-            <div className="text-[10px] uppercase font-mono text-slate-400">Previous (PgUp / Left)</div>
+            <div className="text-[10px] uppercase font-mono text-stage-muted">Previous (PgUp / Left)</div>
             <div className="text-xs truncate font-semibold">{previousSongTitle || 'First Song'}</div>
           </div>
         </button>
 
         {/* Central Pedal Reminder */}
-        <div className="hidden md:flex flex-col items-center text-center text-slate-500 font-mono text-[11px]">
+        <div className="hidden md:flex flex-col items-center text-center text-stage-muted font-mono text-[11px]">
           <span>BT Pedal or Arrows to flip</span>
-          <span className="text-slate-400 text-xs font-bold">1-Screen Fit (No Scrolling Needed)</span>
+          <span className="text-stage-text text-xs font-bold">1-Screen Fit (No Scrolling Needed)</span>
         </div>
 
-        {/* Next Song Giant Target */}
+        {/* Next Song Target */}
         <button
           onClick={onNextSong}
           disabled={songIndex >= totalSongs - 1}
-          className="flex-1 max-w-xs h-12 flex items-center justify-center gap-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-30 active:scale-98 transition text-slate-950 font-extrabold text-sm shadow-lg shadow-cyan-600/30"
+          className="flex-1 max-w-xs h-12 flex items-center justify-center gap-2 rounded-xl disabled:opacity-30 active:scale-98 transition text-slate-950 font-extrabold text-sm shadow-lg cursor-pointer"
+          style={{ backgroundColor: chordColor || 'rgb(var(--color-stage-accent))' }}
         >
           <div className="text-right truncate">
-            <div className="text-[10px] uppercase font-mono text-cyan-950">Next (PgDn / Right)</div>
+            <div className="text-[10px] uppercase font-mono opacity-80">Next (PgDn / Right)</div>
             <div className="text-xs truncate font-bold">{nextSongTitle || 'End of Setlist'}</div>
           </div>
           <ChevronRight className="w-5 h-5 text-slate-950" />
