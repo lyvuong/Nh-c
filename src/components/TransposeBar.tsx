@@ -40,6 +40,7 @@ interface TransposeBarProps {
 
 export const TransposeBar: React.FC<TransposeBarProps> = ({
   currentKey,
+  originalKey,
   semitones,
   capo = 0,
   onTranspose,
@@ -107,17 +108,25 @@ export const TransposeBar: React.FC<TransposeBarProps> = ({
           <ChevronUp className="w-4 h-4 ml-0.5 text-stage-accent" />
         </button>
 
-        {/* Transpose Status Badge & Reset */}
-        {semitones !== 0 && (
+        {/* Reset Transpose Button */}
+        {semitones !== 0 ? (
           <button
             onClick={onResetTranspose}
-            className="flex items-center gap-1 h-8 px-2 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 text-xs font-mono font-semibold transition border border-amber-500/40"
-            title={`Reset transposition (Transposed ${semitones > 0 ? `+${semitones}` : semitones} semitones)`}
+            className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-amber-500/25 text-amber-300 hover:bg-amber-500/40 text-xs font-mono font-bold transition border border-amber-400/60 shadow-sm animate-pulse"
+            title={`Reset transposition back to original ${originalKey ? `(${originalKey})` : ''}`}
           >
-            <span>{semitones > 0 ? `+${semitones}` : semitones}st</span>
-            <RotateCcw className="w-3 h-3" />
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Reset {semitones > 0 ? `(+${semitones})` : `(${semitones})`}</span>
           </button>
-        )}
+        ) : originalKey ? (
+          <span 
+            onClick={onResetTranspose}
+            className="text-[11px] font-mono text-stage-muted px-1.5 py-1 rounded bg-stage-cardHover/40 border border-stage-border/40 hidden sm:inline"
+            title="Current key matches original chart"
+          >
+            Orig: {originalKey}
+          </span>
+        ) : null}
 
         {/* Flats vs Sharps toggle */}
         <button

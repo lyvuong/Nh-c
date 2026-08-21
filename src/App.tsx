@@ -273,6 +273,7 @@ export function App() {
           onExitStageMode={() => setIsStageMode(false)}
           semitones={semitones}
           onTranspose={handleTranspose}
+          onResetTranspose={handleResetTranspose}
           capo={currentCapo}
           zoomLevel={zoomLevel}
           onZoomChange={(delta) => setZoomLevel((z) => Math.max(0.6, Math.min(1.8, z + delta)))}

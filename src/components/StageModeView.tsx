@@ -3,7 +3,8 @@ import {
   Minimize2, 
   ChevronLeft, 
   ChevronRight, 
-  Lock
+  Lock,
+  RotateCcw
 } from 'lucide-react';
 import type { ParsedSong } from '../lib/chordParser';
 import { ChordProViewer } from './ChordProViewer';
@@ -21,6 +22,7 @@ interface StageModeViewProps {
   onExitStageMode: () => void;
   semitones: number;
   onTranspose: (delta: number) => void;
+  onResetTranspose: () => void;
   capo?: number;
   zoomLevel: number;
   onZoomChange: (delta: number) => void;
@@ -36,7 +38,9 @@ export const StageModeView: React.FC<StageModeViewProps> = ({
   onNextSong,
   onPrevSong,
   onExitStageMode,
+  semitones,
   onTranspose,
+  onResetTranspose,
   capo = 0,
   zoomLevel,
 }) => {
@@ -80,12 +84,14 @@ export const StageModeView: React.FC<StageModeViewProps> = ({
         onTranspose(1);
       } else if (e.key === '-') {
         onTranspose(-1);
+      } else if (e.key === '0' || e.key === 'r' || e.key === 'R') {
+        onResetTranspose();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onNextSong, onPrevSong, onExitStageMode, onTranspose]);
+  }, [onNextSong, onPrevSong, onExitStageMode, onTranspose, onResetTranspose]);
 
   return (
     <div className="fixed inset-0 z-50 bg-[#05070a] text-slate-100 flex flex-col select-none overflow-hidden font-sans">
@@ -122,7 +128,7 @@ export const StageModeView: React.FC<StageModeViewProps> = ({
 
         {/* Right: Quick Stage Controls & Exit */}
         <div className="flex items-center gap-2">
-          {/* Quick Semitone Buttons */}
+          {/* Quick Semitone Buttons with Reset */}
           <div className="flex items-center bg-slate-900 rounded-lg border border-slate-700 p-0.5">
             <button
               onClick={() => onTranspose(-1)}
@@ -141,6 +147,16 @@ export const StageModeView: React.FC<StageModeViewProps> = ({
             >
               +1
             </button>
+            {semitones !== 0 && (
+              <button
+                onClick={onResetTranspose}
+                className="ml-1 px-1.5 py-1 text-[10px] font-mono font-bold bg-amber-500/30 text-amber-300 hover:bg-amber-500/40 active:scale-95 rounded flex items-center gap-0.5 border border-amber-400/50"
+                title="Reset transpose to original key (press '0' or 'r')"
+              >
+                <RotateCcw className="w-2.5 h-2.5" />
+                <span>Orig</span>
+              </button>
+            )}
           </div>
 
           {/* Exit Fullscreen Stage */}
