@@ -85,13 +85,16 @@ export function App() {
     return songs.find((s) => s.id === activeSongId) || null;
   }, [songs, activeSongId]);
 
-  // Reset Transposition when song changes
+  // Reset Transposition and update document title when song changes
   useEffect(() => {
     if (activeSong) {
       setSemitones(0);
       setCurrentCapo(activeSong.capo || 0);
+      document.title = `${activeSong.title} • Nhạc`;
+    } else {
+      document.title = 'Nhạc';
     }
-  }, [activeSongId]);
+  }, [activeSong, activeSongId]);
 
   // Active Setlist Record
   const activeSetlist = useMemo(() => {

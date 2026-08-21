@@ -1,5 +1,5 @@
-// StageChord Pro Offline Service Worker
-const CACHE_NAME = 'stagechord-cache-v1';
+// Nhạc Offline Service Worker
+const CACHE_NAME = 'nhac-cache-v2';
 
 const ASSETS_TO_CACHE = [
   '/',

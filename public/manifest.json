@@ -1,6 +1,6 @@
 {
-  "name": "LV5 StageChord Pro (DCD) - Live Band ChordPro",
-  "short_name": "LV5 StageChord",
+  "name": "Nhạc",
+  "short_name": "Nhạc",
   "description": "Offline-first ChordPro reader, setlist manager, and 1-screen stage viewer for LV5 / DCD band live gigs",
   "start_url": "/",
   "display": "standalone",
