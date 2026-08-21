@@ -1,0 +1,18 @@
+{
+  "name": "StageChord Pro - Live Musician's ChordPro PWA",
+  "short_name": "StageChord",
+  "description": "Offline-first ChordPro reader, setlist manager, and 1-screen stage viewer for bands and gigging musicians",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0d14",
+  "theme_color": "#0a0d14",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

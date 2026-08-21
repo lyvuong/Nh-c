@@ -157,7 +157,6 @@ export function parseChordPro(text: string): ParsedSong {
           });
           break;
         default:
-          // Check for section headers inside directives or unrecognized directives
           if (directive.includes('verse') || directive.includes('chorus') || directive.includes('intro') || directive.includes('bridge') || directive.includes('outro')) {
             if (currentSection.lines.length > 0) {
               sections.push(currentSection);
@@ -173,7 +172,7 @@ export function parseChordPro(text: string): ParsedSong {
       continue;
     }
 
-    // Check for Section headers formatted as text, e.g., "[Verse 1]", "Verse 1:", "CHORUS:"
+    // Check for Section headers formatted as text
     const sectionMatch = trimmed.match(/^\[?(Verse\s*\d*|Chorus\s*\d*|Bridge\s*\d*|Intro|Outro|Solo|Pre-Chorus|Tag|Interlude)\]?:?$/i);
     if (sectionMatch) {
       if (currentSection.lines.length > 0) {
@@ -197,7 +196,7 @@ export function parseChordPro(text: string): ParsedSong {
       continue;
     }
 
-    // Parse standard lyric & chord line: "Amazing [G]Grace how [C]sweet the [G]sound"
+    // Parse standard lyric & chord line
     const parsedLine = parseLineTokens(rawLine);
     if (parsedLine.tokens) {
       for (const tok of parsedLine.tokens) {
@@ -211,7 +210,6 @@ export function parseChordPro(text: string): ParsedSong {
     sections.push(currentSection);
   }
 
-  // If title was never set, pick first line or default
   if (!metadata.title || metadata.title === 'Untitled Song') {
     if (sections.length > 0 && sections[0].lines.length > 0) {
       const firstLine = sections[0].lines[0];
@@ -230,14 +228,10 @@ export function parseChordPro(text: string): ParsedSong {
   };
 }
 
-// Parses a single line of text with embedded [Chord] brackets into aligned tokens
 function parseLineTokens(line: string): SongLine {
   const tokens: ChordToken[] = [];
   let hasChords = false;
 
-  // Regex to split by chord brackets e.g. [G], [Am7], [D/F#]
-  // We can scan character by character or use a regex
-  let currentIndex = 0;
   const chordRegex = /\[([^\]]+)\]/g;
   let match: RegExpExecArray | null;
 
@@ -249,7 +243,6 @@ function parseLineTokens(line: string): SongLine {
     const matchStart = match.index;
     const chordContent = match[1].trim();
 
-    // The lyric before this chord
     const precedingLyric = line.slice(lastMatchEnd, matchStart);
     if (precedingLyric.length > 0 || currentChord !== undefined) {
       tokens.push({
@@ -264,7 +257,6 @@ function parseLineTokens(line: string): SongLine {
     lastMatchEnd = chordRegex.lastIndex;
   }
 
-  // Remainder of line after last chord
   const remainingLyric = line.slice(lastMatchEnd);
   if (remainingLyric.length > 0 || currentChord !== undefined) {
     tokens.push({
@@ -275,7 +267,6 @@ function parseLineTokens(line: string): SongLine {
     });
   }
 
-  // If the line had no chords at all, it's just raw lyric or comment
   if (tokens.length === 0) {
     tokens.push({
       type: 'chord_lyric',
@@ -290,7 +281,6 @@ function parseLineTokens(line: string): SongLine {
   };
 }
 
-// Transpose an entire parsed AST by N semitones
 export function transposeParsedSong(song: ParsedSong, semitones: number, preferFlats?: boolean): ParsedSong {
   if (semitones % 12 === 0) return song;
 
