@@ -9,13 +9,13 @@ export default {
     extend: {
       colors: {
         stage: {
-          bg: 'var(--color-stage-bg)',
-          card: 'var(--color-stage-card)',
-          cardHover: 'var(--color-stage-cardHover)',
-          border: 'var(--color-stage-border)',
-          accent: 'var(--color-stage-accent)',
-          text: 'var(--color-stage-text)',
-          muted: 'var(--color-stage-muted)',
+          bg: 'rgb(var(--color-stage-bg) / <alpha-value>)',
+          card: 'rgb(var(--color-stage-card) / <alpha-value>)',
+          cardHover: 'rgb(var(--color-stage-cardHover) / <alpha-value>)',
+          border: 'rgb(var(--color-stage-border) / <alpha-value>)',
+          accent: 'rgb(var(--color-stage-accent) / <alpha-value>)',
+          text: 'rgb(var(--color-stage-text) / <alpha-value>)',
+          muted: 'rgb(var(--color-stage-muted) / <alpha-value>)',
         }
       },
       fontFamily: {

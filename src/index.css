@@ -2,63 +2,63 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --color-stage-bg: #0a0d14;
-  --color-stage-card: #121824;
-  --color-stage-cardHover: #1a2333;
-  --color-stage-border: #1f2d42;
-  --color-stage-accent: #38bdf8;
-  --color-stage-text: #f8fafc;
-  --color-stage-muted: #94a3b8;
+:root, html, body {
+  --color-stage-bg: 10 13 20;
+  --color-stage-card: 18 24 36;
+  --color-stage-cardHover: 26 35 51;
+  --color-stage-border: 31 45 66;
+  --color-stage-accent: 56 189 248;
+  --color-stage-text: 248 250 252;
+  --color-stage-muted: 148 163 184;
 }
 
 html.theme-stage-dark, body.theme-stage-dark {
-  --color-stage-bg: #0a0d14;
-  --color-stage-card: #121824;
-  --color-stage-cardHover: #1a2333;
-  --color-stage-border: #1f2d42;
-  --color-stage-text: #f8fafc;
-  --color-stage-muted: #94a3b8;
+  --color-stage-bg: 10 13 20;
+  --color-stage-card: 18 24 36;
+  --color-stage-cardHover: 26 35 51;
+  --color-stage-border: 31 45 66;
+  --color-stage-text: 248 250 252;
+  --color-stage-muted: 148 163 184;
 }
 
 html.theme-oled-black, body.theme-oled-black {
-  --color-stage-bg: #000000;
-  --color-stage-card: #0a0d12;
-  --color-stage-cardHover: #141820;
-  --color-stage-border: #1f2633;
-  --color-stage-text: #ffffff;
-  --color-stage-muted: #9ca3af;
+  --color-stage-bg: 0 0 0;
+  --color-stage-card: 10 13 18;
+  --color-stage-cardHover: 20 24 32;
+  --color-stage-border: 31 38 51;
+  --color-stage-text: 255 255 255;
+  --color-stage-muted: 156 163 175;
 }
 
 html.theme-amber-warm, body.theme-amber-warm {
-  --color-stage-bg: #130e07;
-  --color-stage-card: #1f170c;
-  --color-stage-cardHover: #2c2012;
-  --color-stage-border: #3b2c19;
-  --color-stage-text: #fef3c7;
-  --color-stage-muted: #d97706;
+  --color-stage-bg: 19 14 7;
+  --color-stage-card: 31 23 12;
+  --color-stage-cardHover: 44 32 18;
+  --color-stage-border: 59 44 25;
+  --color-stage-text: 254 243 199;
+  --color-stage-muted: 217 119 6;
 }
 
 html.theme-light-contrast, body.theme-light-contrast {
-  --color-stage-bg: #f1f5f9;
-  --color-stage-card: #ffffff;
-  --color-stage-cardHover: #e2e8f0;
-  --color-stage-border: #cbd5e1;
-  --color-stage-text: #0f172a;
-  --color-stage-muted: #64748b;
+  --color-stage-bg: 241 245 249;
+  --color-stage-card: 255 255 255;
+  --color-stage-cardHover: 226 232 240;
+  --color-stage-border: 203 213 225;
+  --color-stage-text: 15 23 42;
+  --color-stage-muted: 100 116 139;
 }
 
 body {
   margin: 0;
   padding: 0;
-  background-color: var(--color-stage-bg);
-  color: var(--color-stage-text);
+  background-color: rgb(var(--color-stage-bg));
+  color: rgb(var(--color-stage-text));
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   user-select: text;
   overflow: hidden;
-  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 /* Custom Stage Scrollbar */
@@ -72,10 +72,10 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-stage-border);
+  background: rgb(var(--color-stage-border));
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-stage-accent);
+  background: rgb(var(--color-stage-accent));
 }
