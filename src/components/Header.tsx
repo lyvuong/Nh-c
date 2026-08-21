@@ -5,7 +5,8 @@ import {
   Settings, 
   Star, 
   FolderOpen, 
-  ListMusic
+  ListMusic,
+  Edit3
 } from 'lucide-react';
 import type { DBSong, DBSetlist } from '../lib/db';
 
@@ -18,7 +19,7 @@ interface HeaderProps {
   onEnterStageMode: () => void;
   onOpenSettings: () => void;
   onOpenFolderImport: () => void;
-  onCreateSong: () => void;
+  onEditSong: () => void;
   onToggleFavorite: () => void;
 }
 
@@ -31,6 +32,7 @@ export const Header: React.FC<HeaderProps> = ({
   onEnterStageMode,
   onOpenSettings,
   onOpenFolderImport,
+  onEditSong,
   onToggleFavorite,
 }) => {
   return (
@@ -51,19 +53,28 @@ export const Header: React.FC<HeaderProps> = ({
               {currentSong ? currentSong.title : 'StageChord Live'}
             </h2>
             {currentSong && (
-              <button
-                onClick={onToggleFavorite}
-                className="p-1 rounded hover:text-amber-400 text-stage-muted transition flex-shrink-0"
-                title={currentSong.isFavorite ? 'Unstar' : 'Star song'}
-              >
-                <Star
-                  className={`w-4 h-4 ${
-                    currentSong.isFavorite
-                      ? 'fill-amber-400 text-amber-400'
-                      : 'text-stage-muted'
-                  }`}
-                />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={onToggleFavorite}
+                  className="p-1 rounded hover:text-amber-400 text-stage-muted transition flex-shrink-0"
+                  title={currentSong.isFavorite ? 'Unstar' : 'Star song'}
+                >
+                  <Star
+                    className={`w-4 h-4 ${
+                      currentSong.isFavorite
+                        ? 'fill-amber-400 text-amber-400'
+                        : 'text-stage-muted'
+                    }`}
+                  />
+                </button>
+                <button
+                  onClick={onEditSong}
+                  className="p-1 rounded hover:bg-stage-cardHover text-stage-muted hover:text-stage-text transition flex-shrink-0"
+                  title="Edit this song's chords & lyrics"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                </button>
+              </div>
             )}
           </div>
 
@@ -88,6 +99,18 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Right: Quick Action Buttons */}
       <div className="flex items-center gap-1.5 flex-shrink-0">
+        {/* Edit Song button in header */}
+        {currentSong && (
+          <button
+            onClick={onEditSong}
+            className="flex items-center gap-1 h-8 px-2.5 rounded-lg bg-stage-cardHover hover:bg-stage-border text-stage-text text-xs font-semibold border border-stage-border transition"
+            title="Edit chords, lyrics or metadata"
+          >
+            <Edit3 className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="hidden sm:inline">Edit Song</span>
+          </button>
+        )}
+
         {/* Open Folder on desktop header */}
         <button
           onClick={onOpenFolderImport}

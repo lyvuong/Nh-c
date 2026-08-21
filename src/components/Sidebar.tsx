@@ -6,7 +6,8 @@ import {
   ListMusic, 
   Star, 
   Music, 
-  X
+  X,
+  Edit3
 } from 'lucide-react';
 import type { DBSong, DBSetlist } from '../lib/db';
 
@@ -18,6 +19,7 @@ interface SidebarProps {
   onSelectSong: (songId: number) => void;
   onSelectSetlist: (setlistId: number | null) => void;
   onCreateSong: () => void;
+  onEditSong: (song: DBSong) => void;
   onOpenFolderImport: () => void;
   onOpenSetlistEditor: () => void;
   isOpenMobile: boolean;
@@ -33,6 +35,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectSong,
   onSelectSetlist,
   onCreateSong,
+  onEditSong,
   onOpenFolderImport,
   onOpenSetlistEditor,
   isOpenMobile,
@@ -301,12 +304,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <div className="flex items-center gap-1 flex-shrink-0">
                     {song.key && (
                       <span className="px-1.5 py-0.5 rounded font-mono text-[10px] font-bold bg-stage-cardHover border border-stage-border text-stage-accent">
                         {song.key}
                       </span>
                     )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditSong(song);
+                      }}
+                      className="p-1 rounded opacity-0 group-hover:opacity-100 hover:text-cyan-300 transition"
+                      title="Edit song source"
+                    >
+                      <Edit3 className="w-3.5 h-3.5 text-stage-muted hover:text-cyan-300" />
+                    </button>
                     <button
                       onClick={(e) => onToggleFavorite(song.id!, e)}
                       className="p-1 rounded opacity-0 group-hover:opacity-100 hover:text-amber-400 transition"

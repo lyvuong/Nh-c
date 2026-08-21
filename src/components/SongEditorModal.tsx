@@ -1,10 +1,11 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Edit3, 
   X, 
   Check, 
   Trash2, 
-  Sparkles
+  Sparkles,
+  RotateCcw
 } from 'lucide-react';
 import { parseChordPro, type ParsedSong } from '../lib/chordParser';
 import { ChordProViewer } from './ChordProViewer';
@@ -18,17 +19,8 @@ interface SongEditorModalProps {
   onDeleteSong?: (id: number) => Promise<void>;
 }
 
-export const SongEditorModal: React.FC<SongEditorModalProps> = ({
-  isOpen,
-  onClose,
-  song,
-  onSaveSong,
-  onDeleteSong,
-}) => {
-  const [content, setContent] = useState<string>(
-    song?.content ||
-      `{title: New Song}
-{artist: Band Name}
+const DEFAULT_NEW_SONG_TEMPLATE = `{title: New Song}
+{artist: Band / Artist}
 {key: G}
 {tempo: 120}
 {time: 4/4}
@@ -44,8 +36,25 @@ export const SongEditorModal: React.FC<SongEditorModalProps> = ({
 {start_of_chorus}
 [G]This is the chorus [C]sing it loud
 [D]Play it together with the [G]crowd
-{end_of_chorus}`
+{end_of_chorus}`;
+
+export const SongEditorModal: React.FC<SongEditorModalProps> = ({
+  isOpen,
+  onClose,
+  song,
+  onSaveSong,
+  onDeleteSong,
+}) => {
+  const [content, setContent] = useState<string>(
+    song?.content || DEFAULT_NEW_SONG_TEMPLATE
   );
+
+  // Sync content whenever song or modal open state changes
+  useEffect(() => {
+    if (isOpen) {
+      setContent(song?.content || DEFAULT_NEW_SONG_TEMPLATE);
+    }
+  }, [song, isOpen]);
 
   const [activeTab, setActiveTab] = useState<'split' | 'edit' | 'preview'>('split');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -80,12 +89,12 @@ export const SongEditorModal: React.FC<SongEditorModalProps> = ({
     await onSaveSong(
       {
         title: meta.title || 'Untitled Song',
-        artist: meta.artist || song?.artist,
+        artist: meta.artist || song?.artist || '',
         key: meta.key || song?.key || 'C',
         originalKey: meta.key || song?.originalKey || 'C',
         capo: meta.capo || song?.capo || 0,
-        tempo: meta.tempo || song?.tempo,
-        timeSignature: meta.time || song?.timeSignature,
+        tempo: meta.tempo || song?.tempo || '',
+        timeSignature: meta.time || song?.timeSignature || '4/4',
         content: content,
         folderName: song?.folderName || 'General',
         fileName: song?.fileName || `${meta.title}.cho`,
@@ -120,10 +129,10 @@ export const SongEditorModal: React.FC<SongEditorModalProps> = ({
             </div>
             <div className="truncate">
               <h3 className="font-extrabold text-sm sm:text-base text-stage-text truncate">
-                {song ? `Edit: ${song.title}` : 'Create ChordPro Song'}
+                {song ? `Edit: ${song.title}` : 'Create New ChordPro Song'}
               </h3>
               <p className="text-[11px] text-stage-muted truncate">
-                ChordPro tags: [Chord] in lyrics, &#123;soc&#125; &#123;eoc&#125; for chorus
+                Edit chords in brackets e.g. [G], directives e.g. &#123;title: ...&#125;, &#123;key: ...&#125;
               </p>
             </div>
           </div>
@@ -186,13 +195,19 @@ export const SongEditorModal: React.FC<SongEditorModalProps> = ({
             &#123;sov&#125; Verse
           </button>
           <button
-            onClick={() => insertSnippet('{comment: Solo / Bridge}')}
+            onClick={() => insertSnippet('{start_of_bridge}\n\n{end_of_bridge}')}
+            className="px-2 py-1 rounded bg-stage-cardHover hover:bg-stage-border text-amber-300 font-mono border border-stage-border transition flex-shrink-0"
+          >
+            &#123;sob&#125; Bridge
+          </button>
+          <button
+            onClick={() => insertSnippet('{comment: Guitar Solo}')}
             className="px-2 py-1 rounded bg-stage-cardHover hover:bg-stage-border text-amber-300 font-mono border border-stage-border transition flex-shrink-0"
           >
             &#123;comment&#125;
           </button>
           <button
-            onClick={() => insertSnippet('{key: Em}')}
+            onClick={() => insertSnippet('{key: Am}')}
             className="px-2 py-1 rounded bg-stage-cardHover hover:bg-stage-border text-stage-muted hover:text-stage-text font-mono border border-stage-border transition flex-shrink-0"
           >
             &#123;key&#125;
@@ -202,6 +217,14 @@ export const SongEditorModal: React.FC<SongEditorModalProps> = ({
             className="px-2 py-1 rounded bg-stage-cardHover hover:bg-stage-border text-stage-muted hover:text-stage-text font-mono border border-stage-border transition flex-shrink-0"
           >
             &#123;tempo&#125;
+          </button>
+          <button
+            onClick={() => setContent(song?.content || DEFAULT_NEW_SONG_TEMPLATE)}
+            className="px-2 py-1 rounded bg-stage-cardHover hover:bg-stage-border text-slate-400 hover:text-slate-200 font-mono border border-stage-border transition flex-shrink-0 ml-auto flex items-center gap-1"
+            title="Reset to original content before edits"
+          >
+            <RotateCcw className="w-3 h-3" />
+            <span>Reset Edits</span>
           </button>
         </div>
 
@@ -214,15 +237,15 @@ export const SongEditorModal: React.FC<SongEditorModalProps> = ({
             }`}
           >
             <div className="p-2 px-3 border-b border-stage-border/60 bg-stage-bg/80 flex items-center justify-between text-[11px] font-mono text-stage-muted">
-              <span>ChordPro Source</span>
-              <span>UTF-8 Plain Text</span>
+              <span>ChordPro Source (Type directly to edit chords & lyrics)</span>
+              <span className="text-cyan-400 font-semibold">{content.length} characters</span>
             </div>
             <textarea
               ref={textareaRef}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className="flex-1 w-full p-4 bg-transparent font-mono text-xs sm:text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none resize-none leading-relaxed selection:bg-cyan-500/30"
-              placeholder="Paste or write ChordPro markup here..."
+              placeholder="Type or paste ChordPro text here..."
               spellCheck={false}
             />
           </div>
@@ -259,7 +282,7 @@ export const SongEditorModal: React.FC<SongEditorModalProps> = ({
                 className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-rose-400 hover:bg-rose-500/10 text-xs font-semibold transition"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>Delete</span>
+                <span>Delete Song</span>
               </button>
             )}
           </div>
@@ -273,10 +296,10 @@ export const SongEditorModal: React.FC<SongEditorModalProps> = ({
             </button>
             <button
               onClick={handleSave}
-              className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-extrabold text-xs shadow-lg shadow-cyan-500/20 active:scale-95 transition flex items-center gap-2"
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-extrabold text-xs shadow-lg shadow-cyan-500/20 active:scale-95 transition flex items-center gap-2"
             >
               <Check className="w-4 h-4" />
-              <span>Save Song</span>
+              <span>{song?.id ? 'Update & Save Song' : 'Create & Save Song'}</span>
             </button>
           </div>
         </div>
