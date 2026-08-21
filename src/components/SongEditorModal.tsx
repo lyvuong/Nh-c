@@ -177,6 +177,18 @@ export const SongEditorModal: React.FC<SongEditorModalProps> = ({
             Quick Insert:
           </span>
           <button
+            onClick={() => insertSnippet('{title: Song Title}')}
+            className="px-2 py-1 rounded bg-stage-cardHover hover:bg-stage-border text-cyan-300 font-mono border border-stage-border transition flex-shrink-0"
+          >
+            &#123;title&#125;
+          </button>
+          <button
+            onClick={() => insertSnippet('{artist: Artist Name}')}
+            className="px-2 py-1 rounded bg-stage-cardHover hover:bg-stage-border text-cyan-300 font-mono border border-stage-border transition flex-shrink-0"
+          >
+            &#123;artist&#125;
+          </button>
+          <button
             onClick={() => insertSnippet('[G]')}
             className="px-2 py-1 rounded bg-stage-cardHover hover:bg-stage-border text-stage-accent font-mono font-bold border border-stage-border transition flex-shrink-0"
           >
