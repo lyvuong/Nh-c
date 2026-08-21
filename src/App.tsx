@@ -295,10 +295,6 @@ export function App() {
           setEditingSong(null);
           setIsSongEditorOpen(true);
         }}
-        onEditSong={(song) => {
-          setEditingSong(song);
-          setIsSongEditorOpen(true);
-        }}
         onOpenFolderImport={() => setIsFolderImportOpen(true)}
         onOpenSetlistEditor={() => setIsSetlistEditorOpen(true)}
         isOpenMobile={isMobileSidebarOpen}
@@ -318,12 +314,6 @@ export function App() {
           onEnterStageMode={() => setIsStageMode(true)}
           onOpenSettings={() => setIsSettingsOpen(true)}
           onOpenFolderImport={() => setIsFolderImportOpen(true)}
-          onEditSong={() => {
-            if (activeSong) {
-              setEditingSong(activeSong);
-              setIsSongEditorOpen(true);
-            }
-          }}
           onToggleFavorite={() => handleToggleFavorite()}
         />
 
