@@ -47,7 +47,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="truncate">
           <div className="flex items-center gap-2">
             <h2 className="font-extrabold text-sm sm:text-base text-stage-text truncate">
-              {currentSong ? currentSong.title : 'StageChord Live'}
+              {currentSong ? currentSong.title : 'LV5 StageChord Live'}
             </h2>
             {currentSong && (
               <button

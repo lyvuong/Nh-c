@@ -129,9 +129,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div>
               <h2 className="font-extrabold text-sm text-stage-text tracking-tight flex items-center gap-1.5">
-                StageChord <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-bold">PWA</span>
+                LV5 StageChord <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-bold">DCD</span>
               </h2>
-              <p className="text-[11px] text-stage-muted">Offline Band ChordPro</p>
+              <p className="text-[11px] text-stage-muted">Live Band ChordPro Reader</p>
             </div>
           </div>
 

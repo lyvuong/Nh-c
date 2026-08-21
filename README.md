@@ -1,6 +1,6 @@
-# 🎸 StageChord Pro - Musician's ChordPro PWA
+# 🎸 LV5 StageChord Pro (DCD) - Band ChordPro PWA
 
-**StageChord Pro** is a high-performance, 100% offline Progressive Web App (PWA) built specifically for gigging musicians, bands, rehearsals, and tablet music stands.
+**LV5 StageChord Pro** (DCD Edition) is a high-performance, 100% offline Progressive Web App (PWA) built specifically for band rehearsals, gigging musicians, setlist management, and tablet music stands.
 
 ---
 
@@ -23,10 +23,10 @@
    - Auto-scaling font algorithm dynamically fits the complete song onto a single screen so you never need to scroll or turn pages while performing.
 
 5. **🎵 Semitone Transposition & Capo Tool**:
-   - Transpose $+1$ or $-1$ semitone in real-time.
+   - Transpose $+1$ or $-1$ semitone in real-time with instant Reset button.
    - Smart enharmonic handling (Sharps `#` vs Flats `♭`).
    - Supports jazz, 7th/9th/dim/sus chords, and slash chords (e.g. `G/B`, `C#m7b5`, `F#/A#`).
-   - Integrated Capo calculator.
+   - Integrated Capo calculator and indicator.
 
 6. **📋 Setlist Builder & Gig Manager**:
    - Create, edit, rename, and arrange song sequences for upcoming gigs.
@@ -38,7 +38,7 @@
    - Foot pedal & keyboard shortcuts:
      - **Next Song**: Bluetooth Pedal "Down" / `ArrowRight` / `PageDown` / `Space` / `Enter`
      - **Previous Song**: Bluetooth Pedal "Up" / `ArrowLeft` / `PageUp` / `Backspace`
-     - **Transpose**: `+` / `-` keys
+     - **Transpose**: `+` / `-` keys or `0`/`r` to reset
      - **Exit Stage**: `Escape`
    - Visual metronome pulse indicator for tempo cues.
 
@@ -69,7 +69,7 @@ npm run preview
 
 1. Open the app in **Chrome / Edge / Safari** on your iPad, Android tablet, or phone.
 2. Tap **"Share"** (iOS) or the **three dots menu** (Android/Chrome).
-3. Select **"Add to Home Screen"** or **"Install StageChord"**.
+3. Select **"Add to Home Screen"** or **"Install LV5 StageChord"**.
 4. Launch the standalone app directly from your home screen — fully offline ready!
 
 ---

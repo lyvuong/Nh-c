@@ -1,7 +1,7 @@
 {
-  "name": "StageChord Pro - Live Musician's ChordPro PWA",
-  "short_name": "StageChord",
-  "description": "Offline-first ChordPro reader, setlist manager, and 1-screen stage viewer for bands and gigging musicians",
+  "name": "LV5 StageChord Pro (DCD) - Live Band ChordPro",
+  "short_name": "LV5 StageChord",
+  "description": "Offline-first ChordPro reader, setlist manager, and 1-screen stage viewer for LV5 / DCD band live gigs",
   "start_url": "/",
   "display": "standalone",
   "orientation": "any",
