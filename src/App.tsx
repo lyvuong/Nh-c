@@ -14,6 +14,7 @@ import { FolderImportModal } from './components/FolderImportModal';
 import { SetlistEditorModal } from './components/SetlistEditorModal';
 import { SongEditorModal } from './components/SongEditorModal';
 import { SettingsModal } from './components/SettingsModal';
+import { AboutModal } from './components/AboutModal';
 import { applyThemeToDOM } from './lib/themeManager';
 
 export function App() {
@@ -45,6 +46,7 @@ export function App() {
   const [isSongEditorOpen, setIsSongEditorOpen] = useState<boolean>(false);
   const [editingSong, setEditingSong] = useState<DBSong | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+  const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
 
   // App Theme & Styling with persistence
   const [stageTheme, setStageTheme] = useState<string>(() => {
@@ -315,6 +317,7 @@ export function App() {
         }}
         onOpenFolderImport={() => setIsFolderImportOpen(true)}
         onOpenSetlistEditor={() => setIsSetlistEditorOpen(true)}
+        onOpenAbout={() => setIsAboutOpen(true)}
         isOpenMobile={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
         onToggleFavorite={(id, e) => handleToggleFavorite(id, e)}
@@ -331,6 +334,7 @@ export function App() {
           onToggleSidebarMobile={() => setIsMobileSidebarOpen(true)}
           onEnterStageMode={() => setIsStageMode(true)}
           onOpenSettings={() => setIsSettingsOpen(true)}
+          onOpenAbout={() => setIsAboutOpen(true)}
           onOpenFolderImport={() => setIsFolderImportOpen(true)}
           onToggleFavorite={() => handleToggleFavorite()}
         />
@@ -401,6 +405,31 @@ export function App() {
             </div>
           )}
         </div>
+
+        {/* Bottom Viewer Footer Bar with About / Info Link */}
+        <footer className="bg-stage-card/90 border-t border-stage-border px-3 py-1.5 flex items-center justify-between text-[11px] text-stage-muted flex-shrink-0">
+          <div className="flex items-center gap-2 truncate">
+            <span className="font-semibold text-stage-text truncate">
+              {activeSong ? `${activeSong.title} (${activeSong.key || 'C'})` : 'Nhạc Live ChordPro'}
+            </span>
+            {activeSong?.tempo && (
+              <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-stage-bg border border-stage-border text-cyan-400">
+                {activeSong.tempo} BPM
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button
+              onClick={() => setIsAboutOpen(true)}
+              className="text-stage-accent hover:text-cyan-300 font-semibold transition cursor-pointer flex items-center gap-1"
+              title="About Nhạc, features & shortcuts"
+            >
+              <span>About / Info</span>
+            </button>
+            <span className="hidden sm:inline opacity-40">•</span>
+            <span className="hidden sm:inline font-mono text-[10px] text-emerald-400">100% Offline</span>
+          </div>
+        </footer>
       </main>
 
       {/* Modals */}
@@ -445,6 +474,12 @@ export function App() {
         onExportBackup={handleExportBackup}
         onImportBackup={handleImportBackup}
         onResetSampleLibrary={() => initDefaultData(db)}
+        onOpenAbout={() => setIsAboutOpen(true)}
+      />
+
+      <AboutModal
+        isOpen={isAboutOpen}
+        onClose={() => setIsAboutOpen(false)}
       />
     </div>
   );

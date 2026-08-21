@@ -1,7 +1,7 @@
 {
   "name": "Nhạc",
   "short_name": "Nhạc",
-  "description": "Offline-first ChordPro reader, setlist manager, and 1-screen stage viewer for LV5 / DCD band live gigs",
+  "description": "Offline-first Vietnamese and international ChordPro reader, setlist manager, and 1-screen stage viewer for live music gigs",
   "start_url": "/",
   "display": "standalone",
   "orientation": "any",
@@ -13,6 +13,18 @@
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/icon.jpg",
+      "sizes": "1024x1024",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.jpg",
+      "sizes": "1024x1024",
+      "type": "image/jpeg",
+      "purpose": "any"
     }
   ]
 }

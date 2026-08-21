@@ -6,7 +6,8 @@ import {
   ListMusic, 
   Star, 
   Music, 
-  X
+  X,
+  Info
 } from 'lucide-react';
 import type { DBSong, DBSetlist } from '../lib/db';
 
@@ -20,6 +21,7 @@ interface SidebarProps {
   onCreateSong: () => void;
   onOpenFolderImport: () => void;
   onOpenSetlistEditor: () => void;
+  onOpenAbout: () => void;
   isOpenMobile: boolean;
   onCloseMobile: () => void;
   onToggleFavorite: (songId: number, e: React.MouseEvent) => void;
@@ -35,6 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCreateSong,
   onOpenFolderImport,
   onOpenSetlistEditor,
+  onOpenAbout,
   isOpenMobile,
   onCloseMobile,
   onToggleFavorite,
@@ -123,15 +126,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
       >
         {/* Sidebar Header */}
         <div className="p-3.5 border-b border-stage-border/70 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-slate-950 font-black shadow-md shadow-cyan-500/20">
-              <Music className="w-4 h-4" />
-            </div>
+          <div className="flex items-center gap-2.5">
+            <img 
+              src="/favicon.svg" 
+              alt="Nhạc Logo" 
+              className="w-8 h-8 rounded-lg shadow-md shadow-cyan-500/20 ring-1 ring-cyan-500/30 object-cover"
+            />
             <div>
-              <h2 className="font-extrabold text-sm text-stage-text tracking-tight flex items-center gap-1.5">
-                Nhạc
-              </h2>
-              <p className="text-[11px] text-stage-muted">Live Band ChordPro Reader</p>
+              <div className="flex items-center gap-1.5">
+                <h2 className="font-extrabold text-base text-stage-text tracking-tight">
+                  Nhạc
+                </h2>
+                <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-gradient-to-r from-amber-500/20 to-cyan-500/20 text-amber-300 border border-amber-500/30 font-bold">
+                  PRO
+                </span>
+              </div>
+              <p className="text-[10px] text-stage-muted leading-tight">Live Band ChordPro Reader</p>
             </div>
           </div>
 
@@ -321,13 +331,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
         </div>
 
-        {/* Footer info */}
-        <div className="p-2.5 border-t border-stage-border/60 bg-stage-bg/40 flex items-center justify-between text-[11px] text-stage-muted font-mono">
-          <span>{filteredSongs.length} / {songs.length} Songs</span>
-          <span className="flex items-center gap-1 text-emerald-400">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            100% Offline
-          </span>
+        {/* Footer info & About link */}
+        <div className="p-2.5 border-t border-stage-border/60 bg-stage-bg/40 flex flex-col gap-1.5 text-[11px] text-stage-muted font-mono">
+          <div className="flex items-center justify-between">
+            <span>{filteredSongs.length} / {songs.length} Songs</span>
+            <span className="flex items-center gap-1 text-emerald-400">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              100% Offline
+            </span>
+          </div>
+          <div className="flex items-center justify-between pt-1.5 border-t border-stage-border/40 font-sans">
+            <button
+              onClick={onOpenAbout}
+              className="flex items-center gap-1 text-stage-accent hover:text-cyan-300 font-semibold transition cursor-pointer text-xs"
+              title="About Nhạc, features & shortcuts"
+            >
+              <Info className="w-3.5 h-3.5" />
+              <span>About / Info</span>
+            </button>
+            <span className="text-[10px] text-stage-muted font-mono opacity-70">v1.0.0</span>
+          </div>
         </div>
       </aside>
     </>

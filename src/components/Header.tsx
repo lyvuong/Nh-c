@@ -5,7 +5,8 @@ import {
   Settings, 
   Star, 
   FolderOpen, 
-  ListMusic
+  ListMusic,
+  Info
 } from 'lucide-react';
 import type { DBSong, DBSetlist } from '../lib/db';
 
@@ -17,6 +18,7 @@ interface HeaderProps {
   onToggleSidebarMobile: () => void;
   onEnterStageMode: () => void;
   onOpenSettings: () => void;
+  onOpenAbout: () => void;
   onOpenFolderImport: () => void;
   onToggleFavorite: () => void;
 }
@@ -29,6 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleSidebarMobile,
   onEnterStageMode,
   onOpenSettings,
+  onOpenAbout,
   onOpenFolderImport,
   onToggleFavorite,
 }) => {
@@ -95,6 +98,15 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <FolderOpen className="w-3.5 h-3.5 text-amber-400" />
           <span className="hidden md:inline">Open Folder</span>
+        </button>
+
+        {/* About / Info button */}
+        <button
+          onClick={onOpenAbout}
+          className="p-2 rounded-lg bg-stage-cardHover text-stage-muted hover:text-stage-text active:scale-95 transition border border-stage-border"
+          title="About Nhạc, Guide & Shortcuts"
+        >
+          <Info className="w-4 h-4 text-cyan-400" />
         </button>
 
         {/* Settings button */}

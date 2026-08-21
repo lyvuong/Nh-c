@@ -5,7 +5,8 @@ import {
   Download, 
   Upload, 
   RotateCcw,
-  Check
+  Check,
+  Info
 } from 'lucide-react';
 import { STAGE_THEMES, CHORD_COLORS } from '../lib/themeManager';
 
@@ -21,6 +22,7 @@ interface SettingsModalProps {
   onExportBackup: () => void;
   onImportBackup: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onResetSampleLibrary: () => void;
+  onOpenAbout?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -35,6 +37,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onExportBackup,
   onImportBackup,
   onResetSampleLibrary,
+  onOpenAbout,
 }) => {
   if (!isOpen) return null;
 
@@ -204,7 +207,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 border-t border-stage-border bg-stage-bg/40 flex justify-end">
+        <div className="p-4 border-t border-stage-border bg-stage-bg/40 flex items-center justify-between">
+          {onOpenAbout ? (
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onOpenAbout();
+              }}
+              className="text-xs text-stage-accent hover:text-cyan-300 font-semibold transition cursor-pointer flex items-center gap-1.5"
+            >
+              <Info className="w-3.5 h-3.5" />
+              <span>About Nhạc & Guide</span>
+            </button>
+          ) : <div />}
+          
           <button
             type="button"
             onClick={onClose}
