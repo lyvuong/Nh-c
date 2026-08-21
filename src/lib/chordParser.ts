@@ -210,6 +210,16 @@ export function parseChordPro(text: string): ParsedSong {
     sections.push(currentSection);
   }
 
+  // Auto-detect key if not specified in metadata
+  if (!metadata.key && allChordsSet.size > 0) {
+    const firstChord = Array.from(allChordsSet)[0];
+    const m = firstChord.match(/^([A-G][#b]?)(m)?/i);
+    if (m) {
+      metadata.key = `${m[1].toUpperCase()}${m[2] ? 'm' : ''}`;
+      metadata.originalKey = metadata.key;
+    }
+  }
+
   if (!metadata.title || metadata.title === 'Untitled Song') {
     if (sections.length > 0 && sections[0].lines.length > 0) {
       const firstLine = sections[0].lines[0];

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { 
   ChevronDown, 
   ChevronUp, 
@@ -39,7 +39,7 @@ interface TransposeBarProps {
 }
 
 export const TransposeBar: React.FC<TransposeBarProps> = ({
-  currentKey,
+  currentKey = 'C',
   originalKey,
   semitones,
   capo = 0,
@@ -60,7 +60,11 @@ export const TransposeBar: React.FC<TransposeBarProps> = ({
   preferFlats,
   onTogglePreferFlats,
 }) => {
-  const rootKeys = preferFlats ? ROOT_NOTES_FLAT : ROOT_NOTES_SHARP;
+  const rootNotes = preferFlats ? ROOT_NOTES_FLAT : ROOT_NOTES_SHARP;
+
+  // Generate complete list of Major & Minor keys
+  const majorKeys = useMemo(() => rootNotes, [rootNotes]);
+  const minorKeys = useMemo(() => rootNotes.map((k) => `${k}m`), [rootNotes]);
 
   return (
     <div className="bg-stage-card/90 backdrop-blur-md border-b border-stage-border px-3 py-2 flex flex-wrap items-center justify-between gap-2 shadow-lg sticky top-0 z-30 transition-all">
@@ -83,15 +87,32 @@ export const TransposeBar: React.FC<TransposeBarProps> = ({
         {/* Current Key Indicator & Dropdown */}
         <div className="relative inline-block">
           <select
-            value={currentKey || 'C'}
+            value={currentKey}
             onChange={(e) => onSelectKey(e.target.value)}
             className="h-8 pl-3 pr-7 rounded-lg bg-stage-cardHover border border-stage-accent/40 text-stage-accent font-mono font-bold text-sm focus:outline-none focus:ring-1 focus:ring-stage-accent appearance-none cursor-pointer"
           >
-            {rootKeys.map((k) => (
-              <option key={k} value={k}>
-                Key: {k}
+            {/* If current key is not in standard list, show it */}
+            {!majorKeys.includes(currentKey as any) && !minorKeys.includes(currentKey) && (
+              <option value={currentKey}>
+                Key: {currentKey}
               </option>
-            ))}
+            )}
+
+            <optgroup label="Major Keys">
+              {majorKeys.map((k) => (
+                <option key={`maj-${k}`} value={k}>
+                  Key: {k}
+                </option>
+              ))}
+            </optgroup>
+
+            <optgroup label="Minor Keys">
+              {minorKeys.map((k) => (
+                <option key={`min-${k}`} value={k}>
+                  Key: {k}
+                </option>
+              ))}
+            </optgroup>
           </select>
           <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1.5 text-stage-accent/70">
             <ChevronDown className="w-3.5 h-3.5" />
@@ -121,7 +142,7 @@ export const TransposeBar: React.FC<TransposeBarProps> = ({
         ) : originalKey ? (
           <span 
             onClick={onResetTranspose}
-            className="text-[11px] font-mono text-stage-muted px-1.5 py-1 rounded bg-stage-cardHover/40 border border-stage-border/40 hidden sm:inline"
+            className="text-[11px] font-mono text-stage-muted px-1.5 py-1 rounded bg-stage-cardHover/40 border border-stage-border/40 hidden sm:inline cursor-default"
             title="Current key matches original chart"
           >
             Orig: {originalKey}

@@ -6,28 +6,22 @@ export const ROOT_NOTES_FLAT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab',
 // Key mapping to semitone index (0 = C, 1 = C#/Db, ..., 11 = B)
 const NOTE_TO_SEMITONE: Record<string, number> = {
   'C': 0, 'B#': 0,
-  'C#': 1, 'DB': 1, 'Db': 1,
-  'D': 2,
-  'D#': 3, 'EB': 3, 'Eb': 3,
-  'E': 4, 'FB': 4, 'Fb': 4,
-  'F': 5, 'E#': 5,
-  'F#': 6, 'GB': 6, 'Gb': 6,
-  'G': 7,
-  'G#': 8, 'AB': 8, 'Ab': 8,
-  'A': 9,
-  'A#': 10, 'BB': 10, 'Bb': 10,
-  'B': 11, 'CB': 11, 'Cb': 11,
+  'C#': 1, 'DB': 1, 'Db': 1, 'db': 1, 'c#': 1,
+  'D': 2, 'd': 2,
+  'D#': 3, 'EB': 3, 'Eb': 3, 'eb': 3, 'd#': 3,
+  'E': 4, 'FB': 4, 'Fb': 4, 'e': 4,
+  'F': 5, 'E#': 5, 'f': 5,
+  'F#': 6, 'GB': 6, 'Gb': 6, 'gb': 6, 'f#': 6,
+  'G': 7, 'g': 7,
+  'G#': 8, 'AB': 8, 'Ab': 8, 'ab': 8, 'g#': 8,
+  'A': 9, 'a': 9,
+  'A#': 10, 'BB': 10, 'Bb': 10, 'bb': 10, 'a#': 10,
+  'B': 11, 'CB': 11, 'Cb': 11, 'b': 11,
 };
 
 // Regex to capture root note (including sharp/flat) and chord quality + optional bass note
 // e.g. "F#m7b5/C#" -> root: "F#", quality: "m7b5", bass: "C#"
 const CHORD_REGEX = /^([A-G][#b]?)([^/]*)(?:\/([A-G][#b]?))?$/i;
-
-export interface TransposeOptions {
-  semitones: number; // e.g. +1, -1, +2
-  preferFlats?: boolean; // if true, use Bb instead of A#
-  targetKey?: string; // explicit key to transpose to
-}
 
 // Determines if a key naturally prefers flats
 export function keyPrefersFlats(key: string): boolean {
@@ -63,8 +57,8 @@ export function transposeChord(chord: string, semitones: number, preferFlats: bo
 
 // Calculates semitone distance between fromKey and toKey
 export function getSemitoneDistance(fromKey: string, toKey: string): number {
-  const fromClean = fromKey.replace(/m|maj|min/i, '').trim();
-  const toClean = toKey.replace(/m|maj|min/i, '').trim();
+  const fromClean = fromKey.replace(/m|maj|min/gi, '').trim();
+  const toClean = toKey.replace(/m|maj|min/gi, '').trim();
 
   const fromIndex = NOTE_TO_SEMITONE[fromClean.toUpperCase()];
   const toIndex = NOTE_TO_SEMITONE[toClean.toUpperCase()];
