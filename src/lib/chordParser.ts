@@ -292,8 +292,6 @@ function parseLineTokens(line: string): SongLine {
 }
 
 export function transposeParsedSong(song: ParsedSong, semitones: number, preferFlats?: boolean): ParsedSong {
-  if (semitones % 12 === 0) return song;
-
   const newKey = song.metadata.key ? transposeChord(song.metadata.key, semitones, preferFlats) : undefined;
 
   const newSections: SongSection[] = song.sections.map(section => ({

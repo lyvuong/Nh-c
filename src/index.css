@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
+  :root, body.theme-stage-dark {
     --color-stage-bg: #0a0d14;
     --color-stage-card: #121824;
     --color-stage-cardHover: #1a2333;
@@ -11,6 +11,36 @@
     --color-stage-accent: #38bdf8;
     --color-stage-text: #f8fafc;
     --color-stage-muted: #94a3b8;
+  }
+
+  body.theme-oled-black {
+    --color-stage-bg: #000000;
+    --color-stage-card: #0c0f14;
+    --color-stage-cardHover: #171d28;
+    --color-stage-border: #242c3b;
+    --color-stage-accent: #38bdf8;
+    --color-stage-text: #ffffff;
+    --color-stage-muted: #9ca3af;
+  }
+
+  body.theme-amber-warm {
+    --color-stage-bg: #140e07;
+    --color-stage-card: #20170e;
+    --color-stage-cardHover: #2d2114;
+    --color-stage-border: #3d2e1c;
+    --color-stage-accent: #fbbf24;
+    --color-stage-text: #fef3c7;
+    --color-stage-muted: #d97706;
+  }
+
+  body.theme-light-contrast {
+    --color-stage-bg: #f1f5f9;
+    --color-stage-card: #ffffff;
+    --color-stage-cardHover: #e2e8f0;
+    --color-stage-border: #cbd5e1;
+    --color-stage-accent: #0284c7;
+    --color-stage-text: #0f172a;
+    --color-stage-muted: #64748b;
   }
 
   body {
@@ -23,37 +53,8 @@
     -moz-osx-font-smoothing: grayscale;
     user-select: text;
     overflow: hidden;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
-}
-
-/* Stage Themes */
-body.theme-oled-black {
-  --color-stage-bg: #000000;
-  --color-stage-card: #080808;
-  --color-stage-cardHover: #121212;
-  --color-stage-border: #222222;
-  --color-stage-text: #ffffff;
-  --color-stage-muted: #888888;
-}
-
-body.theme-amber-warm {
-  --color-stage-bg: #140f0a;
-  --color-stage-card: #211912;
-  --color-stage-cardHover: #2e241a;
-  --color-stage-border: #3b2f22;
-  --color-stage-accent: #fbbf24;
-  --color-stage-text: #fef3c7;
-  --color-stage-muted: #d97706;
-}
-
-body.theme-light-contrast {
-  --color-stage-bg: #f8fafc;
-  --color-stage-card: #ffffff;
-  --color-stage-cardHover: #f1f5f9;
-  --color-stage-border: #cbd5e1;
-  --color-stage-accent: #0284c7;
-  --color-stage-text: #0f172a;
-  --color-stage-muted: #64748b;
 }
 
 /* Custom Stage Scrollbar */
@@ -67,10 +68,10 @@ body.theme-light-contrast {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1f2d42;
+  background: var(--color-stage-border);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #38bdf8;
+  background: var(--color-stage-accent);
 }

@@ -30,7 +30,6 @@ export function App() {
   const [zoomLevel, setZoomLevel] = useState<number>(1.0);
   const [columnsPreference, setColumnsPreference] = useState<'auto' | 1 | 2 | 3>('auto');
   const [isAutoFit, setIsAutoFit] = useState<boolean>(true);
-  const [preferFlats, setPreferFlats] = useState<boolean>(false);
 
   // Auto-scroll
   const [isAutoScrolling, setIsAutoScrolling] = useState<boolean>(false);
@@ -46,9 +45,16 @@ export function App() {
   const [editingSong, setEditingSong] = useState<DBSong | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
 
-  // App Theme & Styling
-  const [stageTheme, setStageTheme] = useState<string>('stage-dark');
-  const [chordColor, setChordColor] = useState<string>('#38bdf8');
+  // App Theme & Styling with persistence
+  const [stageTheme, setStageTheme] = useState<string>(() => {
+    return localStorage.getItem('stagechord_theme') || 'stage-dark';
+  });
+  const [chordColor, setChordColor] = useState<string>(() => {
+    return localStorage.getItem('stagechord_chord_color') || '#38bdf8';
+  });
+  const [preferFlats, setPreferFlats] = useState<boolean>(() => {
+    return localStorage.getItem('stagechord_prefer_flats') === 'true';
+  });
 
   // Initialize Sample Data on first load
   useEffect(() => {
@@ -62,10 +68,20 @@ export function App() {
     }
   }, [songs, activeSongId]);
 
-  // Apply Theme to body class
+  // Apply Theme & Chord Color to document
   useEffect(() => {
     document.body.className = `theme-${stageTheme}`;
+    localStorage.setItem('stagechord_theme', stageTheme);
   }, [stageTheme]);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--color-stage-accent', chordColor);
+    localStorage.setItem('stagechord_chord_color', chordColor);
+  }, [chordColor]);
+
+  useEffect(() => {
+    localStorage.setItem('stagechord_prefer_flats', preferFlats.toString());
+  }, [preferFlats]);
 
   // Active Song Record from DB
   const activeSong = useMemo(() => {
