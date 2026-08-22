@@ -16,6 +16,7 @@ import { SongEditorModal } from './components/SongEditorModal';
 import { SettingsModal } from './components/SettingsModal';
 import { AboutModal } from './components/AboutModal';
 import { GoogleDriveModal } from './components/GoogleDriveModal';
+import { AutoScrollController } from './components/AutoScrollController';
 import { applyThemeToDOM } from './lib/themeManager';
 
 export function App() {
@@ -207,6 +208,41 @@ export function App() {
       cancelAnimationFrame(animationFrameId);
     };
   }, [isAutoScrolling, scrollSpeedBpm]);
+
+  // Rewind scroll container to top
+  const handleRewindToTop = () => {
+    const el = (document.querySelector('.chordpro-scroll-surface') ||
+      document.querySelector('.chordpro-viewer-container') ||
+      viewerScrollContainerRef.current) as HTMLElement | null;
+    if (el) el.scrollTop = 0;
+  };
+
+  // Keyboard Shortcuts for Auto-Scroll Speed & Navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if in an active input/textarea or modal
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) {
+        return;
+      }
+      if (isSongEditorOpen || isSettingsOpen || isAboutOpen || isGoogleDriveOpen || isSetlistEditorOpen) {
+        return;
+      }
+
+      if (e.key === 's' || e.key === 'S') {
+        e.preventDefault();
+        setIsAutoScrolling((prev) => !prev);
+      } else if (e.key === ']' || e.key === '}') {
+        e.preventDefault();
+        setScrollSpeedBpm((prev) => Math.min(240, prev + 5));
+      } else if (e.key === '[' || e.key === '{') {
+        e.preventDefault();
+        setScrollSpeedBpm((prev) => Math.max(10, prev - 5));
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSongEditorOpen, isSettingsOpen, isAboutOpen, isGoogleDriveOpen, isSetlistEditorOpen]);
 
   // Star / Favorite Toggle
   const handleToggleFavorite = async (songId?: number, e?: React.MouseEvent) => {
@@ -524,6 +560,15 @@ export function App() {
         isOpen={isGoogleDriveOpen}
         onClose={() => setIsGoogleDriveOpen(false)}
         onOpenFolderImport={() => setIsFolderImportOpen(true)}
+      />
+
+      {/* Floating Auto-Scroll Speed Controller HUD */}
+      <AutoScrollController
+        isAutoScrolling={isAutoScrolling}
+        onToggleAutoScroll={() => setIsAutoScrolling(!isAutoScrolling)}
+        scrollSpeedBpm={scrollSpeedBpm}
+        onScrollSpeedChange={setScrollSpeedBpm}
+        onRewindToTop={handleRewindToTop}
       />
     </div>
   );

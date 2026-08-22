@@ -291,8 +291,13 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
                     <td className="py-1.5 px-3 text-stage-muted">—</td>
                   </tr>
                   <tr className="hover:bg-stage-cardHover/50">
-                    <td className="py-1.5 px-3 font-sans font-medium text-stage-text">Toggle Stage Mode</td>
-                    <td className="py-1.5 px-3 text-purple-600 dark:text-purple-300 font-semibold">F or F11</td>
+                    <td className="py-1.5 px-3 font-sans font-medium text-stage-text">Toggle Auto-Scroll</td>
+                    <td className="py-1.5 px-3 text-cyan-600 dark:text-cyan-300 font-semibold">S</td>
+                    <td className="py-1.5 px-3 text-stage-muted">—</td>
+                  </tr>
+                  <tr className="hover:bg-stage-cardHover/50">
+                    <td className="py-1.5 px-3 font-sans font-medium text-stage-text">Adjust Scroll Speed</td>
+                    <td className="py-1.5 px-3 text-amber-600 dark:text-amber-300 font-semibold">[ (Slower) / ] (Faster)</td>
                     <td className="py-1.5 px-3 text-stage-muted">—</td>
                   </tr>
                   <tr className="hover:bg-stage-cardHover/50">

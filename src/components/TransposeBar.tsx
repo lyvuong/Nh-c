@@ -5,6 +5,8 @@ import {
   RotateCcw, 
   Play, 
   Square, 
+  Minus,
+  Plus,
   ZoomIn, 
   ZoomOut, 
   Sparkles, 
@@ -49,6 +51,8 @@ export const TransposeBar: React.FC<TransposeBarProps> = ({
   onToggleAutoFit,
   isAutoScrolling,
   onToggleAutoScroll,
+  scrollSpeedBpm = 80,
+  onScrollSpeedChange,
   onEditSong,
   preferFlats,
   onTogglePreferFlats,
@@ -231,19 +235,48 @@ export const TransposeBar: React.FC<TransposeBarProps> = ({
           </button>
         </div>
 
-        {/* Auto-Scroll Toggle */}
-        <button
-          onClick={onToggleAutoScroll}
-          className={`flex items-center gap-1 h-8 px-2.5 rounded-lg text-xs font-semibold transition border ${
-            isAutoScrolling
-              ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
-              : 'bg-stage-border/60 hover:bg-stage-cardHover text-stage-muted border-stage-border'
-          }`}
-          title="Toggle Auto-Scroll"
-        >
-          {isAutoScrolling ? <Square className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-          <span className="hidden sm:inline">Scroll</span>
-        </button>
+        {/* Auto-Scroll Toggle & Speed Stepper */}
+        <div className="flex items-center gap-1 bg-stage-bg rounded-lg border border-stage-border p-0.5">
+          <button
+            onClick={onToggleAutoScroll}
+            className={`flex items-center gap-1 h-7 px-2 rounded-md text-xs font-semibold transition ${
+              isAutoScrolling
+                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse'
+                : 'hover:bg-stage-cardHover text-stage-muted hover:text-stage-text'
+            }`}
+            title="Toggle Auto-Scroll (Space / S)"
+          >
+            {isAutoScrolling ? <Square className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+            <span className="hidden sm:inline">{isAutoScrolling ? 'Stop' : 'Scroll'}</span>
+          </button>
+
+          {/* Speed Stepper */}
+          <div className="flex items-center gap-0.5 border-l border-stage-border/60 pl-1">
+            <button
+              onClick={() => onScrollSpeedChange(Math.max(10, scrollSpeedBpm - 5))}
+              className="p-1 hover:bg-stage-cardHover text-stage-muted hover:text-stage-text rounded transition"
+              title="Decrease Scroll Speed (-5 BPM)"
+            >
+              <Minus className="w-3 h-3" />
+            </button>
+            <input
+              type="number"
+              min={10}
+              max={240}
+              value={scrollSpeedBpm}
+              onChange={(e) => onScrollSpeedChange(Math.max(10, Math.min(240, Number(e.target.value) || 60)))}
+              className="w-8 text-center text-xs font-mono font-bold text-stage-text bg-transparent focus:outline-none"
+              title="Scroll Speed (BPM)"
+            />
+            <button
+              onClick={() => onScrollSpeedChange(Math.min(240, scrollSpeedBpm + 5))}
+              className="p-1 hover:bg-stage-cardHover text-stage-muted hover:text-stage-text rounded transition"
+              title="Increase Scroll Speed (+5 BPM)"
+            >
+              <Plus className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
 
         {/* Edit Song Button */}
         <button
