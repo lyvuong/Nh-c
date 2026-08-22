@@ -10,6 +10,7 @@ import {
   Info
 } from 'lucide-react';
 import type { DBSong, DBSetlist } from '../lib/db';
+import { DISPLAY_VERSION } from '../utils/version';
 
 interface SidebarProps {
   songs: DBSong[];
@@ -349,7 +350,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <Info className="w-3.5 h-3.5" />
               <span>About / Info</span>
             </button>
-            <span className="text-[10px] text-stage-muted font-mono opacity-70">v1.0.0</span>
+            <span className="text-[10px] text-stage-muted font-mono opacity-70">{DISPLAY_VERSION}</span>
           </div>
         </div>
       </aside>

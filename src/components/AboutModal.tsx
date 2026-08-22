@@ -10,8 +10,16 @@ import {
   Smartphone, 
   Heart,
   ExternalLink,
-  BookOpen
+  BookOpen,
+  Code2,
+  CheckCircle2,
+  Tag,
+  Calendar,
+  Server,
+  GitBranch,
+  Rocket
 } from 'lucide-react';
+import { APP_VERSION, BUILD_DATE, BUILD_HASH, DISPLAY_VERSION } from '../utils/version';
 
 interface AboutModalProps {
   isOpen: boolean;
@@ -37,7 +45,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 p-1.5 rounded-full bg-black/60 hover:bg-black/80 text-white/80 hover:text-white backdrop-blur-sm border border-white/10 transition"
+            className="absolute top-3 right-3 p-1.5 rounded-full bg-black/60 hover:bg-black/80 text-white/80 hover:text-white backdrop-blur-sm border border-white/10 transition cursor-pointer"
             title="Close"
           >
             <X className="w-5 h-5" />
@@ -56,7 +64,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
                   Nhạc
                 </h2>
                 <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-extrabold">
-                  Live Stage ChordPro
+                  {DISPLAY_VERSION}
                 </span>
               </div>
               <p className="text-xs text-slate-300 font-medium">
@@ -74,6 +82,107 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
             <p className="leading-relaxed text-slate-300">
               <strong className="text-cyan-400">Nhạc</strong> is a high-performance, 100% offline Progressive Web App (PWA) engineered specifically for band rehearsals, gigging musicians, acoustic worship, and stage tablets. No internet connection required at venues, no PDF zooming hassles, and zero mid-song page turns.
             </p>
+          </div>
+
+          {/* Developer Profile Section (from Statements PWA) */}
+          <div className="bg-stage-bg/80 p-4 sm:p-5 rounded-2xl border border-stage-border/80 space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-cyan-500/10 text-cyan-400 rounded-lg border border-cyan-500/20">
+                <Code2 className="w-4 h-4" />
+              </div>
+              <h3 className="text-sm font-black text-stage-text">Developer Information</h3>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+              <div className="relative shrink-0">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 via-blue-500 to-indigo-500 p-0.5 shadow-lg shadow-cyan-500/20">
+                  <img
+                    src="/avatar.png"
+                    alt="Ly Vuong"
+                    className="w-full h-full rounded-[14px] object-cover"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                </div>
+                <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-cyan-500 text-slate-950 rounded-full flex items-center justify-center border-2 border-stage-card" title="Active Developer">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                </span>
+              </div>
+
+              <div className="space-y-1.5 text-center sm:text-left flex-1">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                  <div>
+                    <h4 className="text-sm font-extrabold text-white">Ly Vuong</h4>
+                    <p className="text-[11px] text-cyan-400 font-bold">Creator & Lead Engineer</p>
+                  </div>
+
+                  <a
+                    href="https://github.com/lyvuong/Nh-c"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 bg-stage-cardHover hover:bg-stage-border text-stage-text text-[11px] font-bold px-3 py-1.5 rounded-lg border border-stage-border transition-all self-center sm:self-auto"
+                  >
+                    <GitBranch className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>GitHub Repository</span>
+                    <ExternalLink className="w-3 h-3 text-slate-400" />
+                  </a>
+                </div>
+
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  Engineered with a focus on live performance reliability, 100% offline security, and intuitive musician user experience. Built using state-of-the-art web technologies and Google DeepMind agentic pairing to deliver a native app-like experience across tablet music stands.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Version & Release Specifications */}
+          <div className="space-y-2.5">
+            <h4 className="font-mono font-bold text-[11px] uppercase tracking-wider text-stage-muted flex items-center gap-1.5">
+              <Tag className="w-3.5 h-3.5 text-emerald-400" /> Version & Build Specifications
+            </h4>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="bg-stage-bg/60 p-3 rounded-xl border border-stage-border/60 space-y-0.5">
+                <span className="text-[10px] text-stage-muted uppercase font-extrabold tracking-wider block">Version</span>
+                <span className="text-xs font-mono font-bold text-cyan-300 flex items-center gap-1">
+                  <Tag className="w-3 h-3 text-cyan-400" />
+                  v{APP_VERSION}
+                </span>
+              </div>
+
+              <div className="bg-stage-bg/60 p-3 rounded-xl border border-stage-border/60 space-y-0.5">
+                <span className="text-[10px] text-stage-muted uppercase font-extrabold tracking-wider block">Build / Commit</span>
+                <span className="text-xs font-mono font-bold text-stage-text flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                  {BUILD_HASH ? `#${BUILD_HASH}` : 'main'}
+                </span>
+              </div>
+
+              <div className="bg-stage-bg/60 p-3 rounded-xl border border-stage-border/60 space-y-0.5">
+                <span className="text-[10px] text-stage-muted uppercase font-extrabold tracking-wider block">Build Date</span>
+                <span className="text-xs font-mono font-bold text-stage-text flex items-center gap-1">
+                  <Calendar className="w-3 h-3 text-amber-400" />
+                  {BUILD_DATE}
+                </span>
+              </div>
+
+              <div className="bg-stage-bg/60 p-3 rounded-xl border border-stage-border/60 space-y-0.5">
+                <span className="text-[10px] text-stage-muted uppercase font-extrabold tracking-wider block">Storage</span>
+                <span className="text-xs font-mono font-bold text-emerald-400 flex items-center gap-1">
+                  <Server className="w-3 h-3 text-emerald-400" />
+                  IndexedDB
+                </span>
+              </div>
+            </div>
+
+            {/* Version Auto-Bump Notice */}
+            <div className="p-2.5 rounded-xl bg-cyan-950/30 border border-cyan-500/20 flex items-center gap-2 text-[11px] text-cyan-300">
+              <Rocket className="w-4 h-4 text-cyan-400 shrink-0" />
+              <span>
+                <strong>Auto-Versioning:</strong> Minor version automatically increments on every git push / release cycle via automated build hooks.
+              </span>
+            </div>
           </div>
 
           {/* Key Highlights Grid */}
@@ -201,7 +310,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
           {/* App Info & Version */}
           <div className="pt-3 border-t border-stage-border/60 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-stage-muted">
             <div className="flex items-center gap-1.5">
-              <span>Version 1.0.0</span>
+              <span>{DISPLAY_VERSION}</span>
               <span>•</span>
               <span>PWA Ready</span>
               <span>•</span>
@@ -230,7 +339,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 active:scale-95 transition"
+            className="px-5 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 active:scale-95 transition cursor-pointer"
           >
             Got It
           </button>
