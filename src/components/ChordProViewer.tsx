@@ -8,6 +8,7 @@ interface ChordProViewerProps {
   zoomLevel: number;
   columnsPreference: 'auto' | 1 | 2 | 3;
   isAutoFit: boolean;
+  isAutoScrolling?: boolean;
   themeStyle?: string;
   chordColor?: string;
   onChordClick?: (chord: string) => void;
@@ -19,6 +20,7 @@ export const ChordProViewer: React.FC<ChordProViewerProps> = ({
   zoomLevel,
   columnsPreference,
   isAutoFit,
+  isAutoScrolling = false,
   chordColor,
   onChordClick,
 }) => {
@@ -72,8 +74,8 @@ export const ChordProViewer: React.FC<ChordProViewerProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`w-full h-full p-3 sm:p-5 flex flex-col select-text transition-colors duration-150 ${
-        isAutoFit ? 'overflow-hidden' : 'overflow-y-auto'
+      className={`chordpro-scroll-surface w-full h-full p-3 sm:p-5 flex flex-col select-text transition-colors duration-150 ${
+        isAutoFit && !isAutoScrolling ? 'overflow-hidden' : 'overflow-y-auto'
       }`}
       style={{ fontSize: activeFontSize }}
     >

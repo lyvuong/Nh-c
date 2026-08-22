@@ -154,21 +154,58 @@ export function App() {
     setSemitones((prev) => prev + distance);
   };
 
-  // Auto-scroll logic
+  // Smooth Auto-scroll animation logic
   useEffect(() => {
     if (!isAutoScrolling) return;
 
-    const interval = setInterval(() => {
-      const el = viewerScrollContainerRef.current;
-      if (el) {
-        el.scrollTop += 1;
-        if (el.scrollTop + el.clientHeight >= el.scrollHeight - 5) {
+    const findScrollTarget = () => {
+      return (
+        document.querySelector('.chordpro-scroll-surface') ||
+        document.querySelector('.chordpro-viewer-container') ||
+        viewerScrollContainerRef.current
+      ) as HTMLElement | null;
+    };
+
+    let animationFrameId: number;
+    let lastTimestamp = performance.now();
+    let exactScrollTop = 0;
+
+    const el = findScrollTarget();
+    if (el) {
+      // If user is already near the bottom, restart scroll from top
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 20) {
+        el.scrollTop = 0;
+      }
+      exactScrollTop = el.scrollTop;
+    }
+
+    // Dynamic speed based on BPM (e.g. 60 BPM -> 35 px/sec, 120 BPM -> 70 px/sec)
+    const pixelsPerSecond = Math.max(12, scrollSpeedBpm * 0.55);
+
+    const step = (now: number) => {
+      const delta = (now - lastTimestamp) / 1000;
+      lastTimestamp = now;
+
+      const target = findScrollTarget();
+      if (target) {
+        exactScrollTop += pixelsPerSecond * delta;
+        target.scrollTop = exactScrollTop;
+
+        // Automatically stop at end of song
+        if (target.scrollTop + target.clientHeight >= target.scrollHeight - 4) {
           setIsAutoScrolling(false);
+          return;
         }
       }
-    }, Math.max(100 - (scrollSpeedBpm / 2), 20));
 
-    return () => clearInterval(interval);
+      animationFrameId = requestAnimationFrame(step);
+    };
+
+    animationFrameId = requestAnimationFrame(step);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
   }, [isAutoScrolling, scrollSpeedBpm]);
 
   // Star / Favorite Toggle
@@ -382,6 +419,7 @@ export function App() {
               zoomLevel={zoomLevel}
               columnsPreference={columnsPreference}
               isAutoFit={isAutoFit}
+              isAutoScrolling={isAutoScrolling}
               themeStyle={stageTheme}
               chordColor={chordColor}
             />
