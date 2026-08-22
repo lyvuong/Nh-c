@@ -1,7 +1,7 @@
 name = "nhac"
 compatibility_date = "2026-08-21"
-pages_build_output_dir = "dist"
 
-# Explicitly configure worker routes and preview URLs to silence deployment warnings
-workers_dev = false
-preview_urls = false
+# Cloudflare Static Assets Deployment Configuration
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
