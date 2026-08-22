@@ -68,14 +68,22 @@ export const ChordProViewer: React.FC<ChordProViewerProps> = ({
     });
   }, [dimensions, totalLineCount, song.sections.length, columnsPreference, zoomLevel]);
 
+  // Scroll to top whenever the song changes
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollTop = 0;
+    }
+  }, [song.metadata.title, song.metadata.key]);
+
   const activeColumns = columnsPreference === 'auto' ? fitResult.columns : columnsPreference;
-  const activeFontSize = isAutoFit ? `${fitResult.fontSizeRem}rem` : `${1.0 * zoomLevel}rem`;
+  const activeFontSize = isAutoFit && fitResult.canFitOnOneScreen ? `${fitResult.fontSizeRem}rem` : `${1.0 * zoomLevel}rem`;
+  const canFitBalanced = isAutoFit && fitResult.canFitOnOneScreen && !isAutoScrolling;
 
   return (
     <div
       ref={containerRef}
       className={`chordpro-scroll-surface w-full h-full p-3 sm:p-5 flex flex-col select-text transition-colors duration-150 ${
-        isAutoFit && !isAutoScrolling ? 'overflow-hidden' : 'overflow-y-auto'
+        canFitBalanced ? 'overflow-hidden' : 'overflow-y-auto'
       }`}
       style={{ fontSize: activeFontSize }}
     >
@@ -122,12 +130,13 @@ export const ChordProViewer: React.FC<ChordProViewerProps> = ({
 
       {/* Multi-Column Song Sections Container */}
       <div
-        className="flex-1 w-full"
+        className={`w-full ${canFitBalanced ? '' : 'pb-36'}`}
         style={{
           columnCount: activeColumns,
-          columnGap: '2.0rem',
-          columnFill: 'auto',
-          height: isAutoFit ? 'calc(100% - 50px)' : 'auto',
+          columnGap: '1.75rem',
+          columnFill: canFitBalanced ? 'balance' : 'auto',
+          height: canFitBalanced ? 'calc(100% - 50px)' : 'auto',
+          minHeight: canFitBalanced ? 'calc(100% - 50px)' : 'auto',
         }}
       >
         {song.sections.map((section, secIdx) => (

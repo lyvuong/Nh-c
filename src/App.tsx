@@ -160,6 +160,10 @@ export function App() {
     if (!isAutoScrolling) return;
 
     const findScrollTarget = () => {
+      if (isStageMode) {
+        const stageEl = document.querySelector('.stage-mode-view .chordpro-scroll-surface') as HTMLElement | null;
+        if (stageEl) return stageEl;
+      }
       return (
         document.querySelector('.chordpro-scroll-surface') ||
         document.querySelector('.chordpro-viewer-container') ||
@@ -207,13 +211,16 @@ export function App() {
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-  }, [isAutoScrolling, scrollSpeedBpm]);
+  }, [isAutoScrolling, scrollSpeedBpm, isStageMode]);
 
   // Rewind scroll container to top
   const handleRewindToTop = () => {
-    const el = (document.querySelector('.chordpro-scroll-surface') ||
+    const el = (
+      (isStageMode ? document.querySelector('.stage-mode-view .chordpro-scroll-surface') : null) ||
+      document.querySelector('.chordpro-scroll-surface') ||
       document.querySelector('.chordpro-viewer-container') ||
-      viewerScrollContainerRef.current) as HTMLElement | null;
+      viewerScrollContainerRef.current
+    ) as HTMLElement | null;
     if (el) el.scrollTop = 0;
   };
 
@@ -370,6 +377,14 @@ export function App() {
           capo={currentCapo}
           zoomLevel={zoomLevel}
           onZoomChange={(delta) => setZoomLevel((z) => Math.max(0.6, Math.min(1.8, z + delta)))}
+          columnsPreference={columnsPreference}
+          onColumnsChange={setColumnsPreference}
+          isAutoFit={isAutoFit}
+          onToggleAutoFit={() => setIsAutoFit(!isAutoFit)}
+          isAutoScrolling={isAutoScrolling}
+          onToggleAutoScroll={() => setIsAutoScrolling(!isAutoScrolling)}
+          scrollSpeedBpm={scrollSpeedBpm}
+          onScrollSpeedChange={setScrollSpeedBpm}
           stageTheme={stageTheme}
           chordColor={chordColor}
         />

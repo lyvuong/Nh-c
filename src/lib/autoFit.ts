@@ -20,12 +20,12 @@ export interface AutoFitResult {
 export function computeAutoFit(config: AutoFitConfig): AutoFitResult {
   const { containerWidth, containerHeight, totalLines, preferredColumns = 'auto', userZoomLevel = 1.0 } = config;
 
-  // Determine optimal columns
+  // Determine optimal columns dynamically
   let columns = 1;
   if (preferredColumns === 'auto') {
-    if (containerWidth >= 1200 && totalLines > 35) {
+    if (containerWidth >= 980 && totalLines > 26) {
       columns = 3;
-    } else if (containerWidth >= 700 && totalLines > 18) {
+    } else if (containerWidth >= 540 && totalLines > 13) {
       columns = 2;
     } else {
       columns = 1;
@@ -37,27 +37,25 @@ export function computeAutoFit(config: AutoFitConfig): AutoFitResult {
   // Calculate vertical height per column
   const effectiveLinesPerColumn = Math.ceil(totalLines / columns);
   
-  // Approximate line height needed in pixels
-  // Each chord line + lyric line + margin takes ~2.2x font size
-  const availableHeightPx = Math.max(containerHeight - 40, 200);
-  const maxLineHeightPx = availableHeightPx / Math.max(effectiveLinesPerColumn, 8);
+  // Available height in pixels (header allowance)
+  const availableHeightPx = Math.max(containerHeight - 50, 150);
+  const maxLineHeightPx = availableHeightPx / Math.max(effectiveLinesPerColumn, 6);
 
-  // Convert to rem (assuming 16px root)
-  let baseRem = (maxLineHeightPx / 36) * userZoomLevel;
+  // Convert to rem (approx 28px per chord+lyric line)
+  let baseRem = (maxLineHeightPx / 28) * userZoomLevel;
 
-  // Clamp font size to readable bounds for tablet/mobile readability
-  // On mobile min 0.75rem, on tablet min 0.85rem, max 1.35rem
-  const minRem = containerWidth < 600 ? 0.75 : 0.85;
-  const maxRem = 1.35;
+  // Readable bounds for live stage use
+  const minRem = 0.52;
+  const maxRem = 1.40;
   
   const clampedRem = Math.min(Math.max(baseRem, minRem), maxRem);
-  const canFit = (effectiveLinesPerColumn * (clampedRem * 36)) <= availableHeightPx;
+  const canFit = (effectiveLinesPerColumn * (clampedRem * 28)) <= availableHeightPx;
 
   return {
     columns,
     fontSizeRem: Number(clampedRem.toFixed(2)),
-    lineHeightMultiplier: clampedRem < 0.9 ? 1.25 : 1.4,
-    chordSpacingEm: clampedRem < 0.9 ? 0.8 : 1.0,
+    lineHeightMultiplier: clampedRem < 0.8 ? 1.15 : 1.35,
+    chordSpacingEm: clampedRem < 0.8 ? 0.65 : 0.9,
     canFitOnOneScreen: canFit,
   };
 }
