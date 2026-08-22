@@ -4,6 +4,7 @@ export interface ThemeConfig {
   id: string;
   name: string;
   description: string;
+  isDark: boolean;
   previewBg: string;
   previewBorder: string;
   bg: string;        // Space-separated R G B channels
@@ -20,6 +21,7 @@ export const STAGE_THEMES: Record<string, ThemeConfig> = {
     id: 'stage-dark',
     name: 'Stage Dark',
     description: 'Deep Navy / Cyan',
+    isDark: true,
     previewBg: '#0a0d14',
     previewBorder: '#38bdf8',
     bg: '10 13 20',
@@ -34,6 +36,7 @@ export const STAGE_THEMES: Record<string, ThemeConfig> = {
     id: 'oled-black',
     name: 'OLED Pitch Black',
     description: 'Pure Black / High Contrast',
+    isDark: true,
     previewBg: '#000000',
     previewBorder: '#ffffff',
     bg: '0 0 0',
@@ -48,6 +51,7 @@ export const STAGE_THEMES: Record<string, ThemeConfig> = {
     id: 'amber-warm',
     name: 'Stage Amber',
     description: 'Warm Vintage Glow',
+    isDark: true,
     previewBg: '#130e07',
     previewBorder: '#fbbf24',
     bg: '19 14 7',
@@ -60,24 +64,57 @@ export const STAGE_THEMES: Record<string, ThemeConfig> = {
   },
   'light-contrast': {
     id: 'light-contrast',
-    name: 'High Contrast Light',
-    description: 'Daytime & Rehearsal',
-    previewBg: '#f1f5f9',
+    name: 'Clean Studio Light',
+    description: 'Daylight & Rehearsal',
+    isDark: false,
+    previewBg: '#f8fafc',
     previewBorder: '#0284c7',
-    bg: '241 245 249',
+    bg: '248 250 252',
     card: '255 255 255',
-    cardHover: '226 232 240',
-    border: '203 213 225',
+    cardHover: '241 245 249',
+    border: '226 232 240',
     text: '15 23 42',
     muted: '100 116 139',
+    defaultAccent: '#0284c7',
+  },
+  'paper-warm': {
+    id: 'paper-warm',
+    name: 'Acoustic Paper Light',
+    description: 'Warm Sheet Music / Sepia',
+    isDark: false,
+    previewBg: '#fbf9f4',
+    previewBorder: '#b45309',
+    bg: '251 249 244',
+    card: '255 255 255',
+    cardHover: '245 240 230',
+    border: '231 222 205',
+    text: '41 37 36',
+    muted: '120 113 108',
+    defaultAccent: '#b45309',
+  },
+  'nordic-light': {
+    id: 'nordic-light',
+    name: 'Nordic Frost Light',
+    description: 'Polar Ice & Sky Blue',
+    isDark: false,
+    previewBg: '#f0f9ff',
+    previewBorder: '#0ea5e9',
+    bg: '240 249 255',
+    card: '255 255 255',
+    cardHover: '224 242 254',
+    border: '186 230 253',
+    text: '12 74 110',
+    muted: '3 105 161',
     defaultAccent: '#0284c7',
   },
 };
 
 export const CHORD_COLORS = [
   { id: '#38bdf8', name: 'Electric Cyan', rgb: '56 189 248' },
+  { id: '#0284c7', name: 'Royal Cobalt', rgb: '2 132 199' },
   { id: '#fbbf24', name: 'Stage Amber', rgb: '251 191 36' },
-  { id: '#34d399', name: 'Vibrant Emerald', rgb: '52 211 153' },
+  { id: '#d97706', name: 'Warm Bronze', rgb: '217 119 6' },
+  { id: '#10b981', name: 'Vibrant Emerald', rgb: '16 185 129' },
   { id: '#f43f5e', name: 'Neon Rose', rgb: '244 63 94' },
   { id: '#a855f7', name: 'Ultra Purple', rgb: '168 85 247' },
   { id: '#ffffff', name: 'Pure White', rgb: '255 255 255' },
@@ -114,6 +151,15 @@ export function applyThemeToDOM(themeId: string, chordColorHex: string) {
 
   const chordRgb = hexToRgbChannels(chordColorHex);
   root.style.setProperty('--color-stage-accent', chordRgb);
+
+  // Synchronize dark/light root classes for Tailwind CSS
+  if (theme.isDark) {
+    root.classList.add('dark');
+    root.classList.remove('light');
+  } else {
+    root.classList.remove('dark');
+    root.classList.add('light');
+  }
 
   // Also update body classes for compatibility
   document.body.className = `theme-${themeId}`;

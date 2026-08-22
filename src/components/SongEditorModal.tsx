@@ -88,16 +88,16 @@ export const SongEditorModal: React.FC<SongEditorModalProps> = ({
     const meta = parsedPreview.metadata;
     await onSaveSong(
       {
-        title: meta.title || 'Untitled Song',
+        title: meta.title || song?.title || 'Untitled Song',
         artist: meta.artist || song?.artist || '',
         key: meta.key || song?.key || 'C',
         originalKey: meta.key || song?.originalKey || 'C',
-        capo: meta.capo || song?.capo || 0,
-        tempo: meta.tempo || song?.tempo || '',
-        timeSignature: meta.time || song?.timeSignature || '4/4',
+        capo: meta.capo !== undefined ? meta.capo : (song?.capo || 0),
+        tempo: meta.tempo || '',
+        timeSignature: meta.time || '4/4',
         content: content,
         folderName: song?.folderName || 'General',
-        fileName: song?.fileName || `${meta.title}.cho`,
+        fileName: song?.fileName || `${meta.title || 'song'}.cho`,
         createdAt: song?.createdAt || Date.now(),
         updatedAt: Date.now(),
         isFavorite: song?.isFavorite || false,
@@ -244,19 +244,19 @@ export const SongEditorModal: React.FC<SongEditorModalProps> = ({
         <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-stage-border">
           {/* Left Editor */}
           <div
-            className={`h-full flex flex-col bg-[#070a10] ${
+            className={`h-full flex flex-col bg-stage-bg ${
               activeTab === 'preview' ? 'hidden md:flex' : 'flex'
             }`}
           >
-            <div className="p-2 px-3 border-b border-stage-border/60 bg-stage-bg/80 flex items-center justify-between text-[11px] font-mono text-stage-muted">
+            <div className="p-2 px-3 border-b border-stage-border/60 bg-stage-card/50 flex items-center justify-between text-[11px] font-mono text-stage-muted">
               <span>ChordPro Source (Type directly to edit chords & lyrics)</span>
-              <span className="text-cyan-400 font-semibold">{content.length} characters</span>
+              <span className="text-stage-accent font-semibold">{content.length} characters</span>
             </div>
             <textarea
               ref={textareaRef}
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="flex-1 w-full p-4 bg-transparent font-mono text-xs sm:text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none resize-none leading-relaxed selection:bg-cyan-500/30"
+              className="flex-1 w-full p-4 bg-transparent font-mono text-xs sm:text-sm text-stage-text placeholder:text-stage-muted focus:outline-none resize-none leading-relaxed selection:bg-cyan-500/30"
               placeholder="Type or paste ChordPro text here..."
               spellCheck={false}
             />

@@ -3,12 +3,11 @@ import {
   ChevronDown, 
   ChevronUp, 
   RotateCcw, 
-  Maximize2, 
   Play, 
   Square, 
   ZoomIn, 
   ZoomOut, 
-  Sparkles,
+  Sparkles, 
   Edit3
 } from 'lucide-react';
 import { ROOT_NOTES_SHARP, ROOT_NOTES_FLAT } from '../lib/chordTransposer';
@@ -17,11 +16,9 @@ interface TransposeBarProps {
   currentKey?: string;
   originalKey?: string;
   semitones: number;
-  capo?: number;
   onTranspose: (delta: number) => void;
   onResetTranspose: () => void;
   onSelectKey: (targetKey: string) => void;
-  onCapoChange: (capo: number) => void;
   zoomLevel: number;
   onZoomChange: (delta: number) => void;
   columns: 'auto' | 1 | 2 | 3;
@@ -32,7 +29,6 @@ interface TransposeBarProps {
   onToggleAutoScroll: () => void;
   scrollSpeedBpm: number;
   onScrollSpeedChange: (speed: number) => void;
-  onEnterStageMode: () => void;
   onEditSong: () => void;
   preferFlats: boolean;
   onTogglePreferFlats: () => void;
@@ -42,11 +38,9 @@ export const TransposeBar: React.FC<TransposeBarProps> = ({
   currentKey = 'C',
   originalKey,
   semitones,
-  capo = 0,
   onTranspose,
   onResetTranspose,
   onSelectKey,
-  onCapoChange,
   zoomLevel,
   onZoomChange,
   columns,
@@ -55,7 +49,6 @@ export const TransposeBar: React.FC<TransposeBarProps> = ({
   onToggleAutoFit,
   isAutoScrolling,
   onToggleAutoScroll,
-  onEnterStageMode,
   onEditSong,
   preferFlats,
   onTogglePreferFlats,
@@ -157,23 +150,6 @@ export const TransposeBar: React.FC<TransposeBarProps> = ({
         >
           {preferFlats ? '♭ Flats' : '# Sharps'}
         </button>
-
-        {/* Capo Selector */}
-        <div className="flex items-center gap-1 bg-stage-cardHover/60 px-2 py-0.5 rounded-lg border border-stage-border">
-          <span className="text-xs text-stage-muted font-medium">Capo:</span>
-          <select
-            value={capo}
-            onChange={(e) => onCapoChange(Number(e.target.value))}
-            className="bg-transparent text-xs font-mono font-bold text-stage-text focus:outline-none cursor-pointer"
-          >
-            <option value={0}>None</option>
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((fret) => (
-              <option key={fret} value={fret}>
-                Fret {fret}
-              </option>
-            ))}
-          </select>
-        </div>
       </div>
 
       {/* View Options: 1-Screen Auto-Fit, Columns, Zoom, Stage Mode */}
@@ -277,16 +253,6 @@ export const TransposeBar: React.FC<TransposeBarProps> = ({
         >
           <Edit3 className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Edit</span>
-        </button>
-
-        {/* Live Stage Mode Button */}
-        <button
-          onClick={onEnterStageMode}
-          className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs shadow-md shadow-cyan-500/20 active:scale-95 transition"
-          title="Enter Fullscreen Stage Performance Mode"
-        >
-          <Maximize2 className="w-3.5 h-3.5" />
-          <span>Stage Mode</span>
         </button>
       </div>
     </div>

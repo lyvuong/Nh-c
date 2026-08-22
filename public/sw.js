@@ -1,11 +1,20 @@
 // Nhạc Offline Service Worker
-const CACHE_NAME = 'nhac-cache-v2';
+const CACHE_NAME = 'nhac-cache-v3';
 
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
   '/favicon.svg',
+  '/logo.svg',
+  '/favicon.png',
+  '/apple-touch-icon.png',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/icon.jpg',
+  '/logo.jpg',
+  '/banner.jpg',
+  '/avatar.png',
 ];
 
 self.addEventListener('install', (event) => {

@@ -40,12 +40,30 @@ html.theme-amber-warm, body.theme-amber-warm {
 }
 
 html.theme-light-contrast, body.theme-light-contrast {
-  --color-stage-bg: 241 245 249;
+  --color-stage-bg: 248 250 252;
   --color-stage-card: 255 255 255;
-  --color-stage-cardHover: 226 232 240;
-  --color-stage-border: 203 213 225;
+  --color-stage-cardHover: 241 245 249;
+  --color-stage-border: 226 232 240;
   --color-stage-text: 15 23 42;
   --color-stage-muted: 100 116 139;
+}
+
+html.theme-paper-warm, body.theme-paper-warm {
+  --color-stage-bg: 251 249 244;
+  --color-stage-card: 255 255 255;
+  --color-stage-cardHover: 245 240 230;
+  --color-stage-border: 231 222 205;
+  --color-stage-text: 41 37 36;
+  --color-stage-muted: 120 113 108;
+}
+
+html.theme-nordic-light, body.theme-nordic-light {
+  --color-stage-bg: 240 249 255;
+  --color-stage-card: 255 255 255;
+  --color-stage-cardHover: 224 242 254;
+  --color-stage-border: 186 230 253;
+  --color-stage-text: 12 74 110;
+  --color-stage-muted: 3 105 161;
 }
 
 body {

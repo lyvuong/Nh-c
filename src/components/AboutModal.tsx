@@ -59,14 +59,14 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
             />
             <div className="pb-0.5">
               <div className="flex items-center gap-2">
-                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                <h2 className="text-xl sm:text-2xl font-black text-stage-text tracking-tight">
                   Nhạc
                 </h2>
-                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-extrabold">
+                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-500 dark:text-cyan-300 border border-cyan-500/40 font-extrabold">
                   {DISPLAY_VERSION}
                 </span>
               </div>
-              <p className="text-xs text-slate-300 font-medium">
+              <p className="text-xs text-stage-muted font-medium">
                 <em>"Nhạc"</em> means Music in Vietnamese (Âm Nhạc)
               </p>
             </div>
@@ -78,15 +78,15 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
           
           {/* Mission Statement */}
           <div className="bg-stage-bg/60 rounded-xl p-3.5 border border-stage-border/60">
-            <p className="leading-relaxed text-slate-300">
-              <strong className="text-cyan-400">Nhạc</strong> is a high-performance, 100% offline Progressive Web App (PWA) engineered specifically for band rehearsals, gigging musicians, acoustic worship, and stage tablets. No internet connection required at venues, no PDF zooming hassles, and zero mid-song page turns.
+            <p className="leading-relaxed text-stage-text">
+              <strong className="text-cyan-600 dark:text-cyan-400">Nhạc</strong> is a high-performance, 100% offline Progressive Web App (PWA) engineered specifically for band rehearsals, gigging musicians, acoustic worship, and stage tablets. No internet connection required at venues, no PDF zooming hassles, and zero mid-song page turns.
             </p>
           </div>
 
           {/* Developer Profile Section (from Statements PWA) */}
           <div className="bg-stage-bg/80 p-4 sm:p-5 rounded-2xl border border-stage-border/80 space-y-3">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-cyan-500/10 text-cyan-400 rounded-lg border border-cyan-500/20">
+              <div className="p-1.5 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-lg border border-cyan-500/20">
                 <Code2 className="w-4 h-4" />
               </div>
               <h3 className="text-sm font-black text-stage-text">Developer Information</h3>
@@ -112,8 +112,8 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
               <div className="space-y-1.5 text-center sm:text-left flex-1">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
                   <div>
-                    <h4 className="text-sm font-extrabold text-white">Ly Vuong</h4>
-                    <p className="text-[11px] text-cyan-400 font-bold">Creator & Lead Engineer</p>
+                    <h4 className="text-sm font-extrabold text-stage-text">Ly Vuong</h4>
+                    <p className="text-[11px] text-cyan-600 dark:text-cyan-400 font-bold">Creator & Lead Engineer</p>
                   </div>
 
                   <a
@@ -122,13 +122,13 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 bg-stage-cardHover hover:bg-stage-border text-stage-text text-[11px] font-bold px-3 py-1.5 rounded-lg border border-stage-border transition-all self-center sm:self-auto"
                   >
-                    <GitBranch className="w-3.5 h-3.5 text-cyan-400" />
+                    <GitBranch className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                     <span>GitHub Repository</span>
-                    <ExternalLink className="w-3 h-3 text-slate-400" />
+                    <ExternalLink className="w-3 h-3 text-stage-muted" />
                   </a>
                 </div>
 
-                <p className="text-[11px] text-slate-300 leading-relaxed">
+                <p className="text-[11px] text-stage-muted leading-relaxed">
                   Engineered with a focus on live performance reliability, 100% offline security, and intuitive musician user experience. Built using state-of-the-art web technologies and Google DeepMind agentic pairing to deliver a native app-like experience across tablet music stands.
                 </p>
               </div>
@@ -256,36 +256,36 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
                     <th className="py-2 px-3">Bluetooth Pedal</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stage-border/40 font-mono text-slate-300">
+                <tbody className="divide-y divide-stage-border/40 font-mono text-stage-text">
                   <tr className="hover:bg-stage-cardHover/50">
                     <td className="py-1.5 px-3 font-sans font-medium text-stage-text">Next Song / Page</td>
-                    <td className="py-1.5 px-3 text-cyan-300">ArrowRight, PageDown, Space, Enter</td>
-                    <td className="py-1.5 px-3 text-emerald-400">Right / Down Pedal</td>
+                    <td className="py-1.5 px-3 text-cyan-600 dark:text-cyan-300 font-semibold">ArrowRight, PageDown, Space, Enter</td>
+                    <td className="py-1.5 px-3 text-emerald-600 dark:text-emerald-400 font-semibold">Right / Down Pedal</td>
                   </tr>
                   <tr className="hover:bg-stage-cardHover/50">
                     <td className="py-1.5 px-3 font-sans font-medium text-stage-text">Previous Song / Page</td>
-                    <td className="py-1.5 px-3 text-cyan-300">ArrowLeft, PageUp, Backspace</td>
-                    <td className="py-1.5 px-3 text-emerald-400">Left / Up Pedal</td>
+                    <td className="py-1.5 px-3 text-cyan-600 dark:text-cyan-300 font-semibold">ArrowLeft, PageUp, Backspace</td>
+                    <td className="py-1.5 px-3 text-emerald-600 dark:text-emerald-400 font-semibold">Left / Up Pedal</td>
                   </tr>
                   <tr className="hover:bg-stage-cardHover/50">
                     <td className="py-1.5 px-3 font-sans font-medium text-stage-text">Transpose Up / Down</td>
-                    <td className="py-1.5 px-3 text-amber-300">+ / - (or = / _)</td>
-                    <td className="py-1.5 px-3 text-slate-500">—</td>
+                    <td className="py-1.5 px-3 text-amber-600 dark:text-amber-300 font-semibold">+ / - (or = / _)</td>
+                    <td className="py-1.5 px-3 text-stage-muted">—</td>
                   </tr>
                   <tr className="hover:bg-stage-cardHover/50">
                     <td className="py-1.5 px-3 font-sans font-medium text-stage-text">Reset Transpose</td>
-                    <td className="py-1.5 px-3 text-amber-300">0 or R</td>
-                    <td className="py-1.5 px-3 text-slate-500">—</td>
+                    <td className="py-1.5 px-3 text-amber-600 dark:text-amber-300 font-semibold">0 or R</td>
+                    <td className="py-1.5 px-3 text-stage-muted">—</td>
                   </tr>
                   <tr className="hover:bg-stage-cardHover/50">
                     <td className="py-1.5 px-3 font-sans font-medium text-stage-text">Toggle Stage Mode</td>
-                    <td className="py-1.5 px-3 text-purple-300">F or F11</td>
-                    <td className="py-1.5 px-3 text-slate-500">—</td>
+                    <td className="py-1.5 px-3 text-purple-600 dark:text-purple-300 font-semibold">F or F11</td>
+                    <td className="py-1.5 px-3 text-stage-muted">—</td>
                   </tr>
                   <tr className="hover:bg-stage-cardHover/50">
                     <td className="py-1.5 px-3 font-sans font-medium text-stage-text">Exit Stage Mode / Close</td>
-                    <td className="py-1.5 px-3 text-rose-300">Escape</td>
-                    <td className="py-1.5 px-3 text-slate-500">—</td>
+                    <td className="py-1.5 px-3 text-rose-600 dark:text-rose-300 font-semibold">Escape</td>
+                    <td className="py-1.5 px-3 text-stage-muted">—</td>
                   </tr>
                 </tbody>
               </table>
@@ -295,14 +295,14 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
           {/* ChordPro Syntax Directives Quick Reference */}
           <div>
             <h4 className="font-mono font-bold text-[11px] uppercase tracking-wider text-stage-muted mb-2 flex items-center gap-1.5">
-              <Music className="w-3.5 h-3.5 text-purple-400" /> ChordPro Syntax Directives
+              <Music className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" /> ChordPro Syntax Directives
             </h4>
-            <div className="bg-slate-950 p-3 rounded-xl border border-stage-border font-mono text-[11px] space-y-1 text-slate-300 overflow-x-auto">
-              <p><span className="text-cyan-400">{'{title: Song Title}'}</span> — Song name</p>
-              <p><span className="text-cyan-400">{'{artist: Artist Name}'}</span> — Artist/Composer</p>
-              <p><span className="text-cyan-400">{'{key: G}'}</span>, <span className="text-cyan-400">{'{capo: 2}'}</span>, <span className="text-cyan-400">{'{tempo: 120}'}</span> — Song metadata</p>
-              <p><span className="text-cyan-400">{'{comment: Intro / Solo}'}</span> — Section annotation banners</p>
-              <p><span className="text-amber-400">[G]</span> <span className="text-slate-400">Amazing</span> <span className="text-amber-400">[C]</span><span className="text-slate-400">Grace how</span> <span className="text-amber-400">[G]</span><span className="text-slate-400">sweet the sound</span> — Inline chords</p>
+            <div className="bg-stage-bg p-3 rounded-xl border border-stage-border font-mono text-[11px] space-y-1 text-stage-text overflow-x-auto">
+              <p><span className="text-cyan-600 dark:text-cyan-400 font-bold">{'{title: Song Title}'}</span> — Song name</p>
+              <p><span className="text-cyan-600 dark:text-cyan-400 font-bold">{'{artist: Artist Name}'}</span> — Artist/Composer</p>
+              <p><span className="text-cyan-600 dark:text-cyan-400 font-bold">{'{key: G}'}</span>, <span className="text-cyan-600 dark:text-cyan-400 font-bold">{'{capo: 2}'}</span>, <span className="text-cyan-600 dark:text-cyan-400 font-bold">{'{tempo: 120}'}</span> — Song metadata</p>
+              <p><span className="text-cyan-600 dark:text-cyan-400 font-bold">{'{comment: Intro / Solo}'}</span> — Section annotation banners</p>
+              <p><span className="text-amber-600 dark:text-amber-400 font-bold">[G]</span> <span className="text-stage-muted">Amazing</span> <span className="text-amber-600 dark:text-amber-400 font-bold">[C]</span><span className="text-stage-muted">Grace how</span> <span className="text-amber-600 dark:text-amber-400 font-bold">[G]</span><span className="text-stage-muted">sweet the sound</span> — Inline chords</p>
             </div>
           </div>
 

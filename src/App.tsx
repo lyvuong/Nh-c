@@ -345,11 +345,9 @@ export function App() {
             currentKey={parsedTransposedSong.metadata.key}
             originalKey={activeSong.key}
             semitones={semitones}
-            capo={currentCapo}
             onTranspose={handleTranspose}
             onResetTranspose={handleResetTranspose}
             onSelectKey={handleSelectKey}
-            onCapoChange={setCurrentCapo}
             zoomLevel={zoomLevel}
             onZoomChange={(delta) => setZoomLevel((z) => Math.max(0.6, Math.min(1.8, z + delta)))}
             columns={columnsPreference}
@@ -360,7 +358,6 @@ export function App() {
             onToggleAutoScroll={() => setIsAutoScrolling(!isAutoScrolling)}
             scrollSpeedBpm={scrollSpeedBpm}
             onScrollSpeedChange={setScrollSpeedBpm}
-            onEnterStageMode={() => setIsStageMode(true)}
             onEditSong={() => {
               setEditingSong(activeSong);
               setIsSongEditorOpen(true);

@@ -100,9 +100,9 @@ export const ChordProViewer: React.FC<ChordProViewerProps> = ({
               Key: {song.metadata.key}
             </span>
           )}
-          {(capo > 0 || (song.metadata.capo && song.metadata.capo > 0)) && (
-            <span className="px-2.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-xs font-bold shadow-sm">
-              Capo {capo || song.metadata.capo}
+          {((song.metadata.capo !== undefined ? song.metadata.capo : (capo || 0)) > 0) && (
+            <span className="px-2.5 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/35 text-amber-600 dark:text-amber-300 font-mono text-xs font-bold shadow-xs">
+              🎸 Capo {song.metadata.capo !== undefined ? song.metadata.capo : capo}
             </span>
           )}
           {song.metadata.tempo && (
@@ -200,7 +200,7 @@ const LineView: React.FC<{
 }> = ({ line, chordColor, onChordClick }) => {
   if (line.type === 'comment') {
     return (
-      <div className="my-1.5 px-2.5 py-1 rounded bg-amber-500/10 border-l-2 border-amber-400 text-amber-200/90 text-[0.85em] font-mono italic">
+      <div className="my-1.5 px-2.5 py-1 rounded bg-amber-500/10 border-l-2 border-amber-500 text-amber-800 dark:text-amber-200 font-semibold text-[0.85em] font-mono italic">
         💡 {line.commentText}
       </div>
     );
