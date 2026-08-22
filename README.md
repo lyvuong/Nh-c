@@ -103,15 +103,20 @@ npm run preview
 - **Filters**: Quickly filter your library by **Starred Favorites (⭐)**, **Key**, or specific imported **Folders**.
 - **Song Details**: Selecting any song displays its full metadata (Original Key, Transposed Key, Capo, Tempo BPM, Time Signature, and Setlist status).
 
-### 2. Importing Songs & Entire Folders
-- **Batch Folder Import**: Click **"Open Folder"** in the sidebar or header. Select any folder on your device containing `.cho`, `.crd`, `.pro`, `.txt`, or `.chordpro` files. The app parses and imports all files into IndexedDB instantly.
-- **Direct Song Creation**: Click **"+ New Song"** to write or paste a new ChordPro chord sheet from scratch with live side-by-side preview.
+### 2. Importing Songs, Folders & Google Drive Sync
+- **Google Drive Cloud Sync**: Click the **Drive (☁️)** icon in the header or sidebar.
+  - **Option 1 (Google Account OAuth 2.0)**: Connect directly with your Google account to sync private, shared, and team folders.
+  - **Option 2 (Public Shared Folder Link)**: Paste any Google Drive shared link (`https://drive.google.com/drive/folders/...`) for instant sync without logging in.
+  - **Option 3 (Files App / Local Drive Mount)**: Open Google Drive mounted directly in the iPadOS **Files** app or Windows/Mac desktop folder.
+  - All synced songs are cached in local **IndexedDB**, remaining **100% available offline** during live gigs.
+- **Batch Folder Import**: Click **"Open Folder"** to select any local folder of `.cho`, `.crd`, `.pro`, `.txt`, or `.chordpro` files.
+- **Direct Song Creation**: Click **"+ New Song"** to write or paste a new ChordPro chord sheet from scratch with live preview.
 
 ### 3. Real-Time Transposition & Capo
 - Located on the top control bar:
   - **`+1` / `-1`**: Transpose the key up or down semitone by semitone.
   - **`Reset`**: Immediately restore original song key.
-  - **`Capo (+/-)`**: Adjust capo fret position; chords update accordingly.
+  - **`Capo Badge`**: Displays active capo position derived directly from the `{capo: N}` directive.
   - **`♭ / #` Toggle**: Switch enharmonic preference between flats (e.g. `Bb`, `Eb`, `Ab`) and sharps (e.g. `A#`, `D#`, `G#`).
 
 ### 4. Creating & Managing Setlists

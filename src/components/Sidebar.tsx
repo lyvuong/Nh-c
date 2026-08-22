@@ -7,7 +7,8 @@ import {
   Star, 
   Music, 
   X,
-  Info
+  Info,
+  Cloud
 } from 'lucide-react';
 import type { DBSong, DBSetlist } from '../lib/db';
 import { DISPLAY_VERSION } from '../utils/version';
@@ -21,6 +22,7 @@ interface SidebarProps {
   onSelectSetlist: (setlistId: number | null) => void;
   onCreateSong: () => void;
   onOpenFolderImport: () => void;
+  onOpenGoogleDrive: () => void;
   onOpenSetlistEditor: () => void;
   onOpenAbout: () => void;
   isOpenMobile: boolean;
@@ -37,6 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectSetlist,
   onCreateSong,
   onOpenFolderImport,
+  onOpenGoogleDrive,
   onOpenSetlistEditor,
   onOpenAbout,
   isOpenMobile,
@@ -184,23 +187,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </select>
         </div>
 
-        {/* Action Buttons: Import Folder & New Song */}
-        <div className="p-2.5 border-b border-stage-border/60 grid grid-cols-2 gap-2">
+        {/* Action Buttons: Import Folder, Google Drive Sync & New Song */}
+        <div className="p-2.5 border-b border-stage-border/60 grid grid-cols-3 gap-1.5">
           <button
             onClick={onOpenFolderImport}
-            className="flex items-center justify-center gap-1.5 h-8 px-2 rounded-lg bg-stage-cardHover hover:bg-stage-border text-stage-text text-xs font-semibold border border-stage-border active:scale-95 transition"
-            title="Import folder of ChordPro files from tablet or computer"
+            className="flex items-center justify-center gap-1 h-8 px-1.5 rounded-lg bg-stage-cardHover hover:bg-stage-border text-stage-text text-[11px] font-semibold border border-stage-border active:scale-95 transition"
+            title="Import folder from tablet or computer"
           >
-            <FolderOpen className="w-3.5 h-3.5 text-amber-400" />
-            <span>Open Folder</span>
+            <FolderOpen className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+            <span className="truncate">Folder</span>
+          </button>
+          <button
+            onClick={onOpenGoogleDrive}
+            className="flex items-center justify-center gap-1 h-8 px-1.5 rounded-lg bg-stage-cardHover hover:bg-stage-border text-stage-text text-[11px] font-semibold border border-stage-border active:scale-95 transition"
+            title="Google Drive Cloud Sync"
+          >
+            <Cloud className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+            <span className="truncate">Drive</span>
           </button>
           <button
             onClick={onCreateSong}
-            className="flex items-center justify-center gap-1.5 h-8 px-2 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 text-xs font-semibold border border-cyan-500/30 active:scale-95 transition"
+            className="flex items-center justify-center gap-1 h-8 px-1.5 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 text-[11px] font-semibold border border-cyan-500/30 active:scale-95 transition"
             title="Create new ChordPro song"
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>New Song</span>
+            <Plus className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">New</span>
           </button>
         </div>
 

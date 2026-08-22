@@ -4,9 +4,9 @@ import {
   Maximize2, 
   Settings, 
   Star, 
+  Cloud,
   FolderOpen, 
-  ListMusic,
-  Info
+  ListMusic
 } from 'lucide-react';
 import type { DBSong, DBSetlist } from '../lib/db';
 
@@ -18,8 +18,8 @@ interface HeaderProps {
   onToggleSidebarMobile: () => void;
   onEnterStageMode: () => void;
   onOpenSettings: () => void;
-  onOpenAbout: () => void;
   onOpenFolderImport: () => void;
+  onOpenGoogleDrive: () => void;
   onToggleFavorite: () => void;
 }
 
@@ -31,8 +31,8 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleSidebarMobile,
   onEnterStageMode,
   onOpenSettings,
-  onOpenAbout,
   onOpenFolderImport,
+  onOpenGoogleDrive,
   onToggleFavorite,
 }) => {
   return (
@@ -100,13 +100,13 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="hidden md:inline">Open Folder</span>
         </button>
 
-        {/* About / Info button */}
+        {/* Google Drive Cloud Sync */}
         <button
-          onClick={onOpenAbout}
+          onClick={onOpenGoogleDrive}
           className="p-2 rounded-lg bg-stage-cardHover text-stage-muted hover:text-stage-text active:scale-95 transition border border-stage-border"
-          title="About Nhạc, Guide & Shortcuts"
+          title="Google Drive Cloud Sync"
         >
-          <Info className="w-4 h-4 text-cyan-400" />
+          <Cloud className="w-4 h-4 text-cyan-400" />
         </button>
 
         {/* Settings button */}

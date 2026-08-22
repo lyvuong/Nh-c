@@ -15,6 +15,7 @@ import { SetlistEditorModal } from './components/SetlistEditorModal';
 import { SongEditorModal } from './components/SongEditorModal';
 import { SettingsModal } from './components/SettingsModal';
 import { AboutModal } from './components/AboutModal';
+import { GoogleDriveModal } from './components/GoogleDriveModal';
 import { applyThemeToDOM } from './lib/themeManager';
 
 export function App() {
@@ -47,6 +48,7 @@ export function App() {
   const [editingSong, setEditingSong] = useState<DBSong | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
+  const [isGoogleDriveOpen, setIsGoogleDriveOpen] = useState<boolean>(false);
 
   // App Theme & Styling with persistence
   const [stageTheme, setStageTheme] = useState<string>(() => {
@@ -316,6 +318,7 @@ export function App() {
           setIsSongEditorOpen(true);
         }}
         onOpenFolderImport={() => setIsFolderImportOpen(true)}
+        onOpenGoogleDrive={() => setIsGoogleDriveOpen(true)}
         onOpenSetlistEditor={() => setIsSetlistEditorOpen(true)}
         onOpenAbout={() => setIsAboutOpen(true)}
         isOpenMobile={isMobileSidebarOpen}
@@ -334,8 +337,8 @@ export function App() {
           onToggleSidebarMobile={() => setIsMobileSidebarOpen(true)}
           onEnterStageMode={() => setIsStageMode(true)}
           onOpenSettings={() => setIsSettingsOpen(true)}
-          onOpenAbout={() => setIsAboutOpen(true)}
           onOpenFolderImport={() => setIsFolderImportOpen(true)}
+          onOpenGoogleDrive={() => setIsGoogleDriveOpen(true)}
           onToggleFavorite={() => handleToggleFavorite()}
         />
 
@@ -477,6 +480,12 @@ export function App() {
       <AboutModal
         isOpen={isAboutOpen}
         onClose={() => setIsAboutOpen(false)}
+      />
+
+      <GoogleDriveModal
+        isOpen={isGoogleDriveOpen}
+        onClose={() => setIsGoogleDriveOpen(false)}
+        onOpenFolderImport={() => setIsFolderImportOpen(true)}
       />
     </div>
   );

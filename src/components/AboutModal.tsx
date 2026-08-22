@@ -16,7 +16,8 @@ import {
   Calendar,
   Server,
   GitBranch,
-  Rocket
+  Rocket,
+  Cloud
 } from 'lucide-react';
 import { APP_VERSION, BUILD_DATE, BUILD_HASH, DISPLAY_VERSION } from '../utils/version';
 
@@ -235,6 +236,18 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
                   <h5 className="font-bold text-xs text-stage-text">Stage Mode & Foot Pedals</h5>
                   <p className="text-[11px] text-stage-muted mt-0.5 leading-normal">
                     Fullscreen distraction-free view with Screen Wake Lock API and Bluetooth page-turner pedal support (AirTurn, PageFlip, Donner, Coda).
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-stage-bg border border-stage-border/70 flex gap-2.5 sm:col-span-2">
+                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 flex-shrink-0 h-fit">
+                  <Cloud className="w-4 h-4" />
+                </div>
+                <div>
+                  <h5 className="font-bold text-xs text-stage-text">Google Drive Cloud Sync</h5>
+                  <p className="text-[11px] text-stage-muted mt-0.5 leading-normal">
+                    Sync your band's shared chord chart folder directly via Google OAuth 2.0, public shared link, or iPadOS Files app mount. All synced charts remain 100% available offline on stage.
                   </p>
                 </div>
               </div>
