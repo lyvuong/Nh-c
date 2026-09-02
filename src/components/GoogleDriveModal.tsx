@@ -49,7 +49,9 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
   onSyncCompleted,
 }) => {
   const [config, setConfig] = useState<GoogleDriveConfig>(loadDriveConfig());
-  const [activeTab, setActiveTab] = useState<'oauth' | 'public' | 'local'>('oauth');
+  const [activeTab, setActiveTab] = useState<'oauth' | 'public' | 'local'>(
+    () => loadDriveConfig().syncMode || 'oauth'
+  );
   
   // Inputs
   const [folderInput, setFolderInput] = useState(config.folderUrl || config.folderId || '');
@@ -544,6 +546,12 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
                     <span>Scan Files</span>
                   </button>
                 </div>
+                {import.meta.env.VITE_GOOGLE_DRIVE_FOLDER_URL && (
+                  <p className="text-[10px] text-emerald-500 dark:text-emerald-400 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>Pre-filled from app configuration — you shouldn't need to change this.</span>
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -557,6 +565,12 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
                   placeholder="AIzaSy..."
                   className="w-full h-9 px-3 rounded-lg bg-stage-bg border border-stage-border text-stage-text font-mono text-[11px] focus:outline-none focus:ring-1 focus:ring-stage-accent"
                 />
+                {import.meta.env.VITE_GOOGLE_DRIVE_API_KEY && (
+                  <p className="text-[10px] text-emerald-500 dark:text-emerald-400 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>Pre-filled from app configuration — you shouldn't need to enter one.</span>
+                  </p>
+                )}
               </div>
             </div>
           )}

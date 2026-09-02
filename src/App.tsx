@@ -16,6 +16,7 @@ import { SongEditorModal } from './components/SongEditorModal';
 import { SettingsModal } from './components/SettingsModal';
 import { AboutModal } from './components/AboutModal';
 import { GoogleDriveModal } from './components/GoogleDriveModal';
+import { loadDriveConfig, quickSyncFromSavedConfig, type GoogleDriveConfig } from './lib/googleDrive';
 import { AutoScrollController } from './components/AutoScrollController';
 import { applyThemeToDOM } from './lib/themeManager';
 
@@ -50,6 +51,11 @@ export function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
   const [isGoogleDriveOpen, setIsGoogleDriveOpen] = useState<boolean>(false);
+  const [driveConfig, setDriveConfig] = useState<GoogleDriveConfig>(() => loadDriveConfig());
+  const [quickSyncStatus, setQuickSyncStatus] = useState<{
+    state: 'idle' | 'syncing' | 'success' | 'error';
+    message?: string;
+  }>({ state: 'idle' });
 
   // App Theme & Styling with persistence
   const [stageTheme, setStageTheme] = useState<string>(() => {
@@ -266,6 +272,24 @@ export function App() {
     }
   };
 
+  // One-click re-sync of the already-configured Google Drive shared folder
+  const handleQuickDriveSync = async () => {
+    if (quickSyncStatus.state === 'syncing') return;
+    setQuickSyncStatus({ state: 'syncing' });
+    try {
+      const result = await quickSyncFromSavedConfig();
+      setDriveConfig(loadDriveConfig());
+      setQuickSyncStatus({
+        state: 'success',
+        message: `Synced ${result.total} songs (${result.added} new, ${result.updated} updated)`,
+      });
+    } catch (err: any) {
+      setQuickSyncStatus({ state: 'error', message: err.message || 'Sync failed' });
+    } finally {
+      setTimeout(() => setQuickSyncStatus({ state: 'idle' }), 4000);
+    }
+  };
+
   // Import Songs from Folder
   const handleImportSongs = async (newSongs: Omit<DBSong, 'id'>[]) => {
     await db.songs.bulkAdd(newSongs as DBSong[]);
@@ -428,6 +452,9 @@ export function App() {
           onOpenFolderImport={() => setIsFolderImportOpen(true)}
           onOpenGoogleDrive={() => setIsGoogleDriveOpen(true)}
           onToggleFavorite={() => handleToggleFavorite()}
+          driveConfig={driveConfig}
+          quickSyncStatus={quickSyncStatus}
+          onQuickDriveSync={handleQuickDriveSync}
         />
 
         {/* Musician Transpose & Auto-Fit Toolbar */}
@@ -575,6 +602,7 @@ export function App() {
         isOpen={isGoogleDriveOpen}
         onClose={() => setIsGoogleDriveOpen(false)}
         onOpenFolderImport={() => setIsFolderImportOpen(true)}
+        onSyncCompleted={() => setDriveConfig(loadDriveConfig())}
       />
 
       {/* Floating Auto-Scroll Speed Controller HUD */}

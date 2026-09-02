@@ -32,18 +32,41 @@ const SUPPORTED_EXTENSIONS = ['.cho', '.crd', '.chordpro', '.txt', '.pro', '.cho
 // Default public fallback Client ID (users can also provide their own)
 export const DEFAULT_CLIENT_ID = '';
 
-// Load saved config
+// Defaults baked in at build time via .env (VITE_GOOGLE_DRIVE_API_KEY / VITE_GOOGLE_DRIVE_FOLDER_URL),
+// so a pre-configured deployment doesn't require every user to paste in their own API key/folder link.
+function getEnvDefaults(): Partial<GoogleDriveConfig> {
+  const defaults: Partial<GoogleDriveConfig> = {};
+
+  const apiKey = import.meta.env.VITE_GOOGLE_DRIVE_API_KEY;
+  if (apiKey) defaults.apiKey = apiKey;
+
+  const folderUrl = import.meta.env.VITE_GOOGLE_DRIVE_FOLDER_URL;
+  if (folderUrl) {
+    const info = extractFolderInfo(folderUrl);
+    if (info) {
+      defaults.folderId = info.folderId;
+      defaults.resourceKey = info.resourceKey;
+      defaults.folderUrl = folderUrl;
+    }
+  }
+
+  return defaults;
+}
+
+// Load saved config, filling in any gaps with the build-time env defaults above
 export function loadDriveConfig(): GoogleDriveConfig {
+  const base: GoogleDriveConfig = {
+    syncMode: 'public',
+    autoSyncOnLoad: false,
+    ...getEnvDefaults(),
+  };
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) return { ...base, ...JSON.parse(raw) };
   } catch (e) {
     console.error('Failed to parse Google Drive config:', e);
   }
-  return {
-    syncMode: 'public',
-    autoSyncOnLoad: false,
-  };
+  return base;
 }
 
 // Save config
@@ -446,4 +469,39 @@ export async function syncGoogleDriveFolder(params: {
   }
 
   return { added, updated, total };
+}
+
+// One-click re-sync using whatever folder/credentials were saved from a previous setup.
+// Used by the header/sidebar "Sync Now" quick action so returning users don't have to
+// re-open the full modal and re-scan every time.
+export async function quickSyncFromSavedConfig(
+  onProgress?: (current: number, total: number, fileName: string) => void
+): Promise<{ added: number; updated: number; total: number }> {
+  const config = loadDriveConfig();
+  if (!config.folderId) {
+    throw new Error('No Google Drive folder is configured yet.');
+  }
+  if (config.syncMode === 'local') {
+    throw new Error('Local/Files App folders don\'t support quick sync — use the folder picker.');
+  }
+
+  let accessToken: string | undefined;
+  if (config.syncMode === 'oauth') {
+    if (!config.clientId) {
+      throw new Error('No OAuth Client ID is saved — reconnect via the Google Drive modal.');
+    }
+    accessToken = await requestDriveAccessToken(config.clientId);
+  }
+
+  const result = await syncGoogleDriveFolder({
+    folderId: config.folderId,
+    resourceKey: config.resourceKey,
+    accessToken,
+    apiKey: config.syncMode === 'public' ? config.apiKey : undefined,
+    folderName: config.folderName,
+    onProgress,
+  });
+
+  saveDriveConfig({ ...config, lastSyncTime: Date.now() });
+  return result;
 }

@@ -1,14 +1,16 @@
 import React from 'react';
-import { 
-  Menu, 
-  Maximize2, 
-  Settings, 
-  Star, 
+import {
+  Menu,
+  Maximize2,
+  Settings,
+  Star,
   Cloud,
-  FolderOpen, 
-  ListMusic
+  FolderOpen,
+  ListMusic,
+  RefreshCw
 } from 'lucide-react';
 import type { DBSong, DBSetlist } from '../lib/db';
+import type { GoogleDriveConfig } from '../lib/googleDrive';
 
 interface HeaderProps {
   currentSong?: DBSong | null;
@@ -21,6 +23,20 @@ interface HeaderProps {
   onOpenFolderImport: () => void;
   onOpenGoogleDrive: () => void;
   onToggleFavorite: () => void;
+  driveConfig?: GoogleDriveConfig;
+  quickSyncStatus?: { state: 'idle' | 'syncing' | 'success' | 'error'; message?: string };
+  onQuickDriveSync?: () => void;
+}
+
+function formatRelativeTime(timestamp: number): string {
+  const diffMs = Date.now() - timestamp;
+  const mins = Math.round(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  return `${days}d ago`;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -34,7 +50,12 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenFolderImport,
   onOpenGoogleDrive,
   onToggleFavorite,
+  driveConfig,
+  quickSyncStatus,
+  onQuickDriveSync,
 }) => {
+  const isDriveConfigured = !!driveConfig?.folderId && driveConfig.syncMode !== 'local';
+  const isSyncing = quickSyncStatus?.state === 'syncing';
   return (
     <header className="bg-stage-card border-b border-stage-border px-3 sm:px-4 py-2 flex items-center justify-between gap-2 z-20">
       {/* Left: Mobile Menu & Current Title */}
@@ -100,13 +121,48 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="hidden md:inline">Open Folder</span>
         </button>
 
-        {/* Google Drive Cloud Sync */}
+        {/* Google Drive Quick Sync (only shown once a shared folder is configured) */}
+        {isDriveConfigured && (
+          <button
+            onClick={onQuickDriveSync}
+            disabled={isSyncing}
+            className="p-2 rounded-lg bg-stage-cardHover text-stage-muted hover:text-stage-text active:scale-95 transition border border-stage-border disabled:opacity-60"
+            title={
+              quickSyncStatus?.state === 'error'
+                ? quickSyncStatus.message
+                : quickSyncStatus?.state === 'success'
+                ? quickSyncStatus.message
+                : `Sync "${driveConfig?.folderName || 'Drive folder'}" now${
+                    driveConfig?.lastSyncTime ? ` · last synced ${formatRelativeTime(driveConfig.lastSyncTime)}` : ''
+                  }`
+            }
+          >
+            <RefreshCw
+              className={`w-4 h-4 ${
+                quickSyncStatus?.state === 'error'
+                  ? 'text-rose-400'
+                  : quickSyncStatus?.state === 'success'
+                  ? 'text-emerald-400'
+                  : 'text-stage-muted'
+              } ${isSyncing ? 'animate-spin' : ''}`}
+            />
+          </button>
+        )}
+
+        {/* Google Drive Cloud Sync / Setup */}
         <button
           onClick={onOpenGoogleDrive}
-          className="p-2 rounded-lg bg-stage-cardHover text-stage-muted hover:text-stage-text active:scale-95 transition border border-stage-border"
-          title="Google Drive Cloud Sync"
+          className="relative p-2 rounded-lg bg-stage-cardHover text-stage-muted hover:text-stage-text active:scale-95 transition border border-stage-border"
+          title={
+            isDriveConfigured
+              ? `Connected to "${driveConfig?.folderName || 'Drive folder'}" — manage Google Drive sync`
+              : 'Connect a Google Drive shared folder'
+          }
         >
           <Cloud className="w-4 h-4 text-cyan-400" />
+          {isDriveConfigured && (
+            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 border border-stage-card" />
+          )}
         </button>
 
         {/* Settings button */}
