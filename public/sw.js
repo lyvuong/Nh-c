@@ -1,5 +1,5 @@
 // Nhạc Offline Service Worker
-const CACHE_NAME = 'nhac-cache-v3';
+const CACHE_NAME = 'nhac-cache-v4';
 
 const ASSETS_TO_CACHE = [
   '/',
@@ -9,6 +9,9 @@ const ASSETS_TO_CACHE = [
   '/logo.svg',
   '/favicon.png',
   '/apple-touch-icon.png',
+  '/apple-touch-icon-167x167.png',
+  '/apple-touch-icon-152x152.png',
+  '/apple-touch-icon-120x120.png',
   '/icon-192.png',
   '/icon-512.png',
   '/icon.jpg',

@@ -9,6 +9,9 @@ $targets = @(
     @{ Name = "icon-512.png"; Size = 512 },
     @{ Name = "icon-192.png"; Size = 192 },
     @{ Name = "apple-touch-icon.png"; Size = 180 },
+    @{ Name = "apple-touch-icon-167x167.png"; Size = 167 },
+    @{ Name = "apple-touch-icon-152x152.png"; Size = 152 },
+    @{ Name = "apple-touch-icon-120x120.png"; Size = 120 },
     @{ Name = "favicon.png"; Size = 64 }
 )
 
