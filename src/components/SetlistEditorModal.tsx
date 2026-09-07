@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
-import { 
-  ListMusic, 
-  Plus, 
-  Trash2, 
-  ArrowUp, 
-  ArrowDown, 
-  X, 
-  Check, 
-  Music
+import React, { useMemo, useState } from 'react';
+import {
+  ListMusic,
+  Plus,
+  Trash2,
+  ArrowUp,
+  ArrowDown,
+  X,
+  Check,
+  Music,
+  Search,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 import type { DBSong, DBSetlist, DBSetlistSong } from '../lib/db';
 
@@ -44,9 +47,17 @@ export const SetlistEditorModal: React.FC<SetlistEditorModalProps> = ({
     currentSetlist?.songs || []
   );
 
+  // Add Songs picker state
+  const [addSearchQuery, setAddSearchQuery] = useState('');
+  const [addKeyFilter, setAddKeyFilter] = useState('ALL');
+  const [selectedToAdd, setSelectedToAdd] = useState<Set<number>>(new Set());
+
   // Switch setlist
   const handleSelectSetlist = (id: number | 'new') => {
     setSelectedSetlistId(id);
+    setAddSearchQuery('');
+    setAddKeyFilter('ALL');
+    setSelectedToAdd(new Set());
     if (id === 'new') {
       setName(`Gig Setlist ${setlists.length + 1}`);
       setGigDate(new Date().toISOString().split('T')[0]);
@@ -63,8 +74,72 @@ export const SetlistEditorModal: React.FC<SetlistEditorModalProps> = ({
     }
   };
 
-  const handleAddSong = (songId: number) => {
-    setSetlistSongs((prev) => [...prev, { songId }]);
+  const existingSongIds = useMemo(
+    () => new Set(setlistSongs.map((item) => item.songId)),
+    [setlistSongs]
+  );
+
+  const availableKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const s of songs) {
+      if (s.key) keys.add(s.key);
+    }
+    return Array.from(keys).sort();
+  }, [songs]);
+
+  const filteredAvailableSongs = useMemo(() => {
+    const q = addSearchQuery.toLowerCase().trim();
+    return songs.filter((s) => {
+      if (addKeyFilter !== 'ALL' && s.key !== addKeyFilter) return false;
+      if (q) {
+        const titleMatch = s.title.toLowerCase().includes(q);
+        const artistMatch = s.artist?.toLowerCase().includes(q);
+        const keyMatch = s.key?.toLowerCase().includes(q);
+        const folderMatch = s.folderName?.toLowerCase().includes(q);
+        if (!titleMatch && !artistMatch && !keyMatch && !folderMatch) return false;
+      }
+      return true;
+    });
+  }, [songs, addSearchQuery, addKeyFilter]);
+
+  const toggleSelectToAdd = (songId: number) => {
+    if (existingSongIds.has(songId)) return;
+    setSelectedToAdd((prev) => {
+      const next = new Set(prev);
+      if (next.has(songId)) {
+        next.delete(songId);
+      } else {
+        next.add(songId);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAllFiltered = () => {
+    setSelectedToAdd((prev) => {
+      const next = new Set(prev);
+      for (const s of filteredAvailableSongs) {
+        if (s.id && !existingSongIds.has(s.id)) next.add(s.id);
+      }
+      return next;
+    });
+  };
+
+  const handleClearSelectedToAdd = () => {
+    setSelectedToAdd(new Set());
+  };
+
+  const handleAddSongs = () => {
+    if (selectedToAdd.size === 0) return;
+    setSetlistSongs((prev) => {
+      const already = new Set(prev.map((item) => item.songId));
+      const additions = Array.from(selectedToAdd)
+        .filter((id) => !already.has(id))
+        .map((songId) => ({ songId }));
+      return [...prev, ...additions];
+    });
+    setSelectedToAdd(new Set());
+    setAddSearchQuery('');
   };
 
   const handleRemoveSong = (index: number) => {
@@ -305,27 +380,123 @@ export const SetlistEditorModal: React.FC<SetlistEditorModalProps> = ({
               </div>
             </div>
 
-            {/* Quick Add Dropdown */}
-            <div className="pt-2 border-t border-stage-border">
-              <label className="text-[11px] font-mono font-bold text-stage-muted uppercase block mb-1">
-                + Add Song from Library
-              </label>
-              <select
-                onChange={(e) => {
-                  if (e.target.value) {
-                    handleAddSong(Number(e.target.value));
-                    e.target.value = '';
-                  }
-                }}
-                className="w-full h-8 px-2.5 rounded-lg bg-stage-bg border border-stage-border text-xs text-stage-text focus:outline-none focus:ring-1 focus:ring-stage-accent cursor-pointer"
+            {/* Add Songs Picker */}
+            <div className="pt-2 border-t border-stage-border space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-mono font-bold text-stage-muted uppercase">
+                  + Add Songs from Library
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={handleSelectAllFiltered}
+                    className="text-[11px] text-stage-accent hover:underline font-semibold"
+                  >
+                    Select All
+                  </button>
+                  <span className="text-stage-border">|</span>
+                  <button
+                    onClick={handleClearSelectedToAdd}
+                    className="text-[11px] text-stage-muted hover:underline"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-stage-muted" />
+                  <input
+                    type="text"
+                    value={addSearchQuery}
+                    onChange={(e) => setAddSearchQuery(e.target.value)}
+                    placeholder="Search title, artist, key, folder..."
+                    className="w-full h-8 pl-8 pr-7 rounded-lg bg-stage-bg border border-stage-border text-xs text-stage-text placeholder:text-stage-muted focus:outline-none focus:ring-1 focus:ring-stage-accent"
+                  />
+                  {addSearchQuery && (
+                    <button
+                      onClick={() => setAddSearchQuery('')}
+                      className="absolute right-2 top-2 text-stage-muted hover:text-stage-text"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {availableKeys.length > 0 && (
+                  <select
+                    value={addKeyFilter}
+                    onChange={(e) => setAddKeyFilter(e.target.value)}
+                    className="h-8 px-2 rounded-lg bg-stage-bg border border-stage-border text-xs text-stage-muted hover:text-stage-text focus:outline-none cursor-pointer flex-shrink-0"
+                  >
+                    <option value="ALL">Key: All</option>
+                    {availableKeys.map((k) => (
+                      <option key={k} value={k}>
+                        Key: {k}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                {filteredAvailableSongs.length === 0 ? (
+                  <div className="p-3 text-center text-[11px] text-stage-muted">
+                    No songs match your search.
+                  </div>
+                ) : (
+                  filteredAvailableSongs.map((s) => {
+                    const alreadyAdded = existingSongIds.has(s.id!);
+                    const isSelected = selectedToAdd.has(s.id!);
+                    return (
+                      <div
+                        key={s.id}
+                        onClick={() => toggleSelectToAdd(s.id!)}
+                        className={`p-2 rounded-xl border flex items-center justify-between gap-3 transition ${
+                          alreadyAdded
+                            ? 'bg-stage-bg/30 border-stage-border/40 text-stage-muted opacity-50 cursor-default'
+                            : isSelected
+                            ? 'bg-stage-cardHover border-stage-accent/40 text-stage-text cursor-pointer'
+                            : 'bg-stage-bg/50 border-stage-border/50 text-stage-muted hover:text-stage-text cursor-pointer'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {alreadyAdded ? (
+                            <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                          ) : isSelected ? (
+                            <CheckSquare className="w-4 h-4 text-stage-accent flex-shrink-0" />
+                          ) : (
+                            <Square className="w-4 h-4 text-stage-muted flex-shrink-0" />
+                          )}
+                          <div className="truncate">
+                            <div className="text-xs font-bold truncate">{s.title}</div>
+                            <div className="text-[11px] truncate opacity-80">
+                              {s.artist || ''} {alreadyAdded ? '• Already in setlist' : ''}
+                            </div>
+                          </div>
+                        </div>
+
+                        {s.key && (
+                          <span className="px-1.5 py-0.5 rounded font-mono text-[10px] font-bold bg-stage-bg border border-stage-border text-stage-accent flex-shrink-0">
+                            {s.key}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              <button
+                onClick={handleAddSongs}
+                disabled={selectedToAdd.size === 0}
+                className="w-full flex items-center justify-center gap-2 h-9 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:opacity-30 disabled:cursor-not-allowed text-white font-extrabold text-xs shadow-lg shadow-cyan-500/20 active:scale-95 transition"
               >
-                <option value="">Choose a song to add...</option>
-                {songs.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.title} {s.artist ? `(${s.artist})` : ''} - Key {s.key || 'C'}
-                  </option>
-                ))}
-              </select>
+                <Plus className="w-4 h-4" />
+                <span>
+                  Add {selectedToAdd.size} Song{selectedToAdd.size === 1 ? '' : 's'}
+                </span>
+              </button>
             </div>
           </div>
         </div>
