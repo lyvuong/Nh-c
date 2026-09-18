@@ -390,7 +390,7 @@ export async function syncGoogleDriveFolder(params: {
   apiKey?: string;
   folderName?: string;
   onProgress?: (current: number, total: number, fileName: string) => void;
-}): Promise<{ added: number; updated: number; total: number }> {
+}): Promise<{ added: number; updated: number; skipped: number; total: number }> {
   const { folderId, resourceKey, accessToken, apiKey, folderName = 'Google Drive', onProgress } = params;
 
   // 1. Scan all files in remote folder (includes .cho, .crd, .txt, and Google Docs)
@@ -399,6 +399,7 @@ export async function syncGoogleDriveFolder(params: {
 
   let added = 0;
   let updated = 0;
+  let skipped = 0;
 
   // 2. Fetch all existing local songs to check for duplicates / updates
   const existingSongs = await db.songs.toArray();
@@ -409,10 +410,18 @@ export async function syncGoogleDriveFolder(params: {
     }
   }
 
-  // 3. Download and parse each file
+  // 3. Download and parse only files that are new or changed since the last sync
+  //    (Drive's modifiedTime lets us skip re-fetching content for unchanged files)
   for (let i = 0; i < total; i++) {
     const file = remoteFiles[i];
     onProgress?.(i + 1, total, file.name);
+
+    const existing = existingMap.get(file.name);
+
+    if (existing && existing.driveModifiedTime && file.modifiedTime && existing.driveModifiedTime === file.modifiedTime) {
+      skipped++;
+      continue;
+    }
 
     try {
       const rawContent = await fetchDriveFileContent(file.id, accessToken, apiKey, file.mimeType, resourceKey);
@@ -424,8 +433,6 @@ export async function syncGoogleDriveFolder(params: {
       const capo = parsed.metadata.capo || 0;
       const tempo = parsed.metadata.tempo || '';
       const time = parsed.metadata.time || '4/4';
-
-      const existing = existingMap.get(file.name);
 
       if (existing && existing.id) {
         // Update existing song
@@ -440,6 +447,7 @@ export async function syncGoogleDriveFolder(params: {
           content: rawContent,
           folderName,
           fileName: file.name,
+          driveModifiedTime: file.modifiedTime,
           updatedAt: Date.now(),
         });
         updated++;
@@ -456,6 +464,7 @@ export async function syncGoogleDriveFolder(params: {
           content: rawContent,
           folderName,
           fileName: file.name,
+          driveModifiedTime: file.modifiedTime,
           createdAt: Date.now(),
           updatedAt: Date.now(),
           isFavorite: false,
@@ -468,7 +477,7 @@ export async function syncGoogleDriveFolder(params: {
     }
   }
 
-  return { added, updated, total };
+  return { added, updated, skipped, total };
 }
 
 // One-click re-sync using whatever folder/credentials were saved from a previous setup.
@@ -476,7 +485,7 @@ export async function syncGoogleDriveFolder(params: {
 // re-open the full modal and re-scan every time.
 export async function quickSyncFromSavedConfig(
   onProgress?: (current: number, total: number, fileName: string) => void
-): Promise<{ added: number; updated: number; total: number }> {
+): Promise<{ added: number; updated: number; skipped: number; total: number }> {
   const config = loadDriveConfig();
   if (!config.folderId) {
     throw new Error('No Google Drive folder is configured yet.');

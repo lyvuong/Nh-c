@@ -70,7 +70,7 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatusText, setSyncStatusText] = useState('');
   const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0 });
-  const [syncResult, setSyncResult] = useState<{ added: number; updated: number; total: number } | null>(null);
+  const [syncResult, setSyncResult] = useState<{ added: number; updated: number; skipped: number; total: number } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -432,7 +432,8 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
               <div>
                 <p className="font-bold">Imported {syncResult.total} Songs Successfully!</p>
                 <p className="text-[11px] text-stage-muted mt-0.5">
-                  Added {syncResult.added} new songs, updated {syncResult.updated}. All charts are saved locally for offline stage use.
+                  Added {syncResult.added} new songs, updated {syncResult.updated}
+                  {typeof syncResult.skipped === 'number' ? `, ${syncResult.skipped} unchanged` : ''}. All charts are saved locally for offline stage use.
                 </p>
               </div>
             </div>

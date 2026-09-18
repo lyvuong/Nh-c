@@ -13,6 +13,7 @@ export interface DBSong {
   tags?: string[];
   folderName?: string;
   fileName?: string;
+  driveModifiedTime?: string;
   createdAt: number;
   updatedAt: number;
   isFavorite?: boolean;

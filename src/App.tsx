@@ -281,7 +281,10 @@ export function App() {
       setDriveConfig(loadDriveConfig());
       setQuickSyncStatus({
         state: 'success',
-        message: `Synced ${result.total} songs (${result.added} new, ${result.updated} updated)`,
+        message:
+          result.added || result.updated
+            ? `Synced ${result.total} songs (${result.added} new, ${result.updated} updated, ${result.skipped} unchanged)`
+            : `Up to date (${result.total} songs, nothing changed)`,
       });
     } catch (err: any) {
       setQuickSyncStatus({ state: 'error', message: err.message || 'Sync failed' });
