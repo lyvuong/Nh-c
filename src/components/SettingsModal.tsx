@@ -1,14 +1,19 @@
-import React from 'react';
-import { 
-  Settings as SettingsIcon, 
-  X, 
-  Download, 
-  Upload, 
+import React, { useEffect, useState } from 'react';
+import {
+  Settings as SettingsIcon,
+  X,
+  Download,
+  Upload,
   RotateCcw,
   Check,
-  Info
+  Info,
+  RefreshCw,
+  Sparkles,
+  AlertTriangle
 } from 'lucide-react';
 import { STAGE_THEMES, CHORD_COLORS } from '../lib/themeManager';
+import { DISPLAY_VERSION } from '../utils/version';
+import { checkForUpdate, installLatestVersion } from '../utils/updateCheck';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -39,6 +44,35 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onResetSampleLibrary,
   onOpenAbout,
 }) => {
+  type UpdateState = 'idle' | 'checking' | 'current' | 'available' | 'error' | 'installing';
+  const [updateState, setUpdateState] = useState<UpdateState>('idle');
+  const [latestVersion, setLatestVersion] = useState<string | undefined>(undefined);
+
+  // Reset the update banner each time the modal is reopened rather than persisting a stale check
+  useEffect(() => {
+    if (isOpen) {
+      setUpdateState('idle');
+      setLatestVersion(undefined);
+    }
+  }, [isOpen]);
+
+  const handleCheckForUpdate = async () => {
+    setUpdateState('checking');
+    try {
+      const result = await checkForUpdate();
+      setLatestVersion(result.latestVersion);
+      setUpdateState(result.hasUpdate ? 'available' : 'current');
+    } catch (e) {
+      console.error('Update check failed:', e);
+      setUpdateState('error');
+    }
+  };
+
+  const handleInstallUpdate = async () => {
+    setUpdateState('installing');
+    await installLatestVersion();
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -161,6 +195,54 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               >
                 Switch to {preferFlats ? '# Sharps' : '♭ Flats'}
               </button>
+            </div>
+          </div>
+
+          {/* App Updates */}
+          <div className="pt-2 border-t border-stage-border space-y-2">
+            <label className="font-mono font-bold text-stage-muted uppercase block">
+              App Version & Updates
+            </label>
+            <div className="p-3 rounded-xl bg-stage-bg border border-stage-border space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <div className="font-bold text-stage-text font-mono">{DISPLAY_VERSION}</div>
+                  <div className="text-[11px] text-stage-muted mt-0.5">
+                    {updateState === 'current' && 'You\'re on the latest version'}
+                    {updateState === 'available' && `Update available${latestVersion ? `: v${latestVersion}` : ''}`}
+                    {updateState === 'error' && 'Could not check for updates'}
+                    {updateState === 'checking' && 'Checking for updates…'}
+                    {updateState === 'installing' && 'Installing update…'}
+                    {updateState === 'idle' && 'Check for a newer build of the app'}
+                  </div>
+                </div>
+                {import.meta.env.DEV ? null : updateState === 'available' ? (
+                  <button
+                    type="button"
+                    onClick={handleInstallUpdate}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/40 text-emerald-500 dark:text-emerald-300 text-xs font-mono font-bold hover:bg-emerald-500/25 transition cursor-pointer flex items-center gap-1.5 flex-shrink-0"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Update Now
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleCheckForUpdate}
+                    disabled={updateState === 'checking' || updateState === 'installing'}
+                    className="px-3 py-1.5 rounded-lg bg-stage-cardHover border border-stage-border text-xs font-mono font-bold text-stage-accent hover:bg-stage-card transition cursor-pointer disabled:opacity-60 flex items-center gap-1.5 flex-shrink-0"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${updateState === 'checking' ? 'animate-spin' : ''}`} />
+                    {updateState === 'error' ? 'Retry' : updateState === 'current' ? 'Check Again' : 'Check for Updates'}
+                  </button>
+                )}
+              </div>
+              {import.meta.env.DEV && (
+                <div className="flex items-center gap-1.5 text-[11px] text-amber-500 dark:text-amber-400">
+                  <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                  Update checks are only available in the deployed production build.
+                </div>
+              )}
             </div>
           </div>
 
