@@ -255,6 +255,7 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
               content: rawContent,
               folderName,
               fileName: file.name,
+              driveModifiedTime: file.modifiedTime,
               updatedAt: Date.now(),
             });
             updated++;
@@ -270,6 +271,7 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
               content: rawContent,
               folderName,
               fileName: file.name,
+              driveModifiedTime: file.modifiedTime,
               createdAt: Date.now(),
               updatedAt: Date.now(),
               isFavorite: false,
@@ -293,7 +295,7 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
       setConfig(updatedConfig);
       saveDriveConfig(updatedConfig);
 
-      setSyncResult({ added, updated, total });
+      setSyncResult({ added, updated, skipped: 0, total });
       onSyncCompleted?.();
     } catch (err: any) {
       console.error('Import failed:', err);
