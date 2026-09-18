@@ -447,6 +447,9 @@ export function App() {
         <Header
           currentSong={activeSong}
           activeSetlist={activeSetlist}
+          setlists={setlists}
+          onSelectSetlist={setActiveSetlistId}
+          onOpenSetlistEditor={() => setIsSetlistEditorOpen(true)}
           songIndex={currentListIndex}
           totalSongsInSetlist={totalListCount}
           onToggleSidebarMobile={() => setIsMobileSidebarOpen(true)}
