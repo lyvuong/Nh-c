@@ -302,6 +302,17 @@ export function App() {
     }
   };
 
+  // Select a setlist (or null for all songs) and load its first song into the main window
+  const handleSelectSetlist = (id: number | null) => {
+    setActiveSetlistId(id);
+    if (id === null) return;
+    const firstSongId = setlists
+      .find((s) => s.id === id)
+      ?.songs.map((item) => item.songId)
+      .find((songId) => songs.some((s) => s.id === songId));
+    if (firstSongId !== undefined) setActiveSongId(firstSongId);
+  };
+
   // Save Setlist
   const handleSaveSetlist = async (data: Omit<DBSetlist, 'id'>, id?: number) => {
     if (id) {
@@ -427,7 +438,7 @@ export function App() {
           setActiveSongId(id);
           setIsMobileSidebarOpen(false);
         }}
-        onSelectSetlist={(id) => setActiveSetlistId(id)}
+        onSelectSetlist={handleSelectSetlist}
         onCreateSong={() => {
           setEditingSong(null);
           setIsSongEditorOpen(true);
@@ -448,7 +459,7 @@ export function App() {
           currentSong={activeSong}
           activeSetlist={activeSetlist}
           setlists={setlists}
-          onSelectSetlist={setActiveSetlistId}
+          onSelectSetlist={handleSelectSetlist}
           onOpenSetlistEditor={() => setIsSetlistEditorOpen(true)}
           songIndex={currentListIndex}
           totalSongsInSetlist={totalListCount}
@@ -569,7 +580,7 @@ export function App() {
         activeSetlistId={activeSetlistId}
         onSaveSetlist={handleSaveSetlist}
         onDeleteSetlist={handleDeleteSetlist}
-        onSelectSetlist={setActiveSetlistId}
+        onSelectSetlist={handleSelectSetlist}
       />
 
       <SongEditorModal
