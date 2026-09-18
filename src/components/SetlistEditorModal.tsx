@@ -89,17 +89,19 @@ export const SetlistEditorModal: React.FC<SetlistEditorModalProps> = ({
 
   const filteredAvailableSongs = useMemo(() => {
     const q = addSearchQuery.toLowerCase().trim();
-    return songs.filter((s) => {
-      if (addKeyFilter !== 'ALL' && s.key !== addKeyFilter) return false;
-      if (q) {
-        const titleMatch = s.title.toLowerCase().includes(q);
-        const artistMatch = s.artist?.toLowerCase().includes(q);
-        const keyMatch = s.key?.toLowerCase().includes(q);
-        const folderMatch = s.folderName?.toLowerCase().includes(q);
-        if (!titleMatch && !artistMatch && !keyMatch && !folderMatch) return false;
-      }
-      return true;
-    });
+    return songs
+      .filter((s) => {
+        if (addKeyFilter !== 'ALL' && s.key !== addKeyFilter) return false;
+        if (q) {
+          const titleMatch = s.title.toLowerCase().includes(q);
+          const artistMatch = s.artist?.toLowerCase().includes(q);
+          const keyMatch = s.key?.toLowerCase().includes(q);
+          const folderMatch = s.folderName?.toLowerCase().includes(q);
+          if (!titleMatch && !artistMatch && !keyMatch && !folderMatch) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }));
   }, [songs, addSearchQuery, addKeyFilter]);
 
   const toggleSelectToAdd = (songId: number) => {
