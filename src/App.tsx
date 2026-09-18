@@ -44,6 +44,29 @@ export function App() {
   // Modes & Modals
   const [isStageMode, setIsStageMode] = useState<boolean>(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
+  // Wide screens (incl. landscape tablets) show the sidebar inline; let the user collapse it.
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('sidebarCollapsed') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const setSidebarCollapsed = (collapsed: boolean) => {
+    setIsSidebarCollapsed(collapsed);
+    try {
+      localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0');
+    } catch {
+      /* storage unavailable */
+    }
+  };
+  const handleOpenSidebar = () => {
+    if (window.matchMedia('(min-width: 1024px)').matches) {
+      setSidebarCollapsed(!isSidebarCollapsed);
+    } else {
+      setIsMobileSidebarOpen(true);
+    }
+  };
   const [isFolderImportOpen, setIsFolderImportOpen] = useState<boolean>(false);
   const [isSetlistEditorOpen, setIsSetlistEditorOpen] = useState<boolean>(false);
   const [isSongEditorOpen, setIsSongEditorOpen] = useState<boolean>(false);
@@ -448,6 +471,8 @@ export function App() {
         onOpenSetlistEditor={() => setIsSetlistEditorOpen(true)}
         onOpenAbout={() => setIsAboutOpen(true)}
         isOpenMobile={isMobileSidebarOpen}
+        isCollapsedDesktop={isSidebarCollapsed}
+        onCollapseDesktop={() => setSidebarCollapsed(true)}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
         onToggleFavorite={(id, e) => handleToggleFavorite(id, e)}
       />
@@ -463,7 +488,7 @@ export function App() {
           onOpenSetlistEditor={() => setIsSetlistEditorOpen(true)}
           songIndex={currentListIndex}
           totalSongsInSetlist={totalListCount}
-          onToggleSidebarMobile={() => setIsMobileSidebarOpen(true)}
+          onToggleSidebarMobile={handleOpenSidebar}
           onEnterStageMode={() => setIsStageMode(true)}
           onOpenSettings={() => setIsSettingsOpen(true)}
           onOpenFolderImport={() => setIsFolderImportOpen(true)}

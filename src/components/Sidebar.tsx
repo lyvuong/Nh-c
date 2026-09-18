@@ -27,6 +27,8 @@ interface SidebarProps {
   onOpenAbout: () => void;
   isOpenMobile: boolean;
   onCloseMobile: () => void;
+  isCollapsedDesktop?: boolean;
+  onCollapseDesktop?: () => void;
   onToggleFavorite: (songId: number, e: React.MouseEvent) => void;
 }
 
@@ -44,6 +46,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenAbout,
   isOpenMobile,
   onCloseMobile,
+  isCollapsedDesktop = false,
+  onCollapseDesktop,
   onToggleFavorite,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -133,7 +137,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <aside
         className={`fixed lg:static top-0 left-0 bottom-0 z-40 w-80 max-w-[85vw] bg-stage-card border-r border-stage-border flex flex-col transition-transform duration-300 ease-in-out ${
           isOpenMobile ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
+        } ${isCollapsedDesktop ? 'lg:hidden' : ''}`}
       >
         {/* Sidebar Header */}
         <div className="p-3.5 border-b border-stage-border/70 flex items-center justify-between">
@@ -157,8 +161,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           <button
-            onClick={onCloseMobile}
-            className="lg:hidden p-1.5 rounded-lg hover:bg-stage-cardHover text-stage-muted hover:text-stage-text"
+            onClick={() => {
+              onCloseMobile();
+              onCollapseDesktop?.();
+            }}
+            className="p-1.5 rounded-lg hover:bg-stage-cardHover text-stage-muted hover:text-stage-text"
+            title="Close side menu"
+            aria-label="Close side menu"
           >
             <X className="w-4 h-4" />
           </button>

@@ -97,8 +97,8 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="relative flex items-center gap-2.5 min-w-0" ref={pickerRef}>
         <button
           onClick={onToggleSidebarMobile}
-          className="lg:hidden p-2 rounded-lg bg-stage-cardHover text-stage-muted hover:text-stage-text active:scale-95 transition"
-          title="Open Song Library & Setlists"
+          className="p-2 rounded-lg bg-stage-cardHover text-stage-muted hover:text-stage-text active:scale-95 transition"
+          title="Toggle Song Library & Setlists"
         >
           <Menu className="w-5 h-5" />
         </button>
