@@ -69,20 +69,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
     return Array.from(keys);
   }, [songs]);
 
-  // Active Setlist Song IDs if a setlist is selected
-  const activeSetlistSongIds = useMemo(() => {
+  // Position of each song within the active setlist (saved order), if one is selected
+  const activeSetlistOrder = useMemo(() => {
     if (!activeSetlistId) return null;
     const current = setlists.find((s) => s.id === activeSetlistId);
     if (!current) return null;
-    return new Set(current.songs.map((item) => item.songId));
+    const order = new Map<number, number>();
+    current.songs.forEach((item, i) => {
+      if (!order.has(item.songId)) order.set(item.songId, i);
+    });
+    return order;
   }, [activeSetlistId, setlists]);
 
   // Filtered Songs
   const filteredSongs = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
 
-    return songs.filter((song) => {
-      if (activeSetlistSongIds && !activeSetlistSongIds.has(song.id!)) {
+    const matches = songs.filter((song) => {
+      if (activeSetlistOrder && !activeSetlistOrder.has(song.id!)) {
         return false;
       }
 
@@ -111,7 +115,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       return true;
     });
-  }, [songs, activeSetlistSongIds, showOnlyFavorites, selectedFolder, selectedKeyFilter, searchQuery]);
+
+    if (!activeSetlistOrder) return matches;
+    return matches.sort((a, b) => activeSetlistOrder.get(a.id!)! - activeSetlistOrder.get(b.id!)!);
+  }, [songs, activeSetlistOrder,showOnlyFavorites, selectedFolder, selectedKeyFilter, searchQuery]);
 
   return (
     <>
