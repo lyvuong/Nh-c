@@ -16,7 +16,7 @@ interface ChordProViewerProps {
 const MIN_FIT_REM = 0.5;
 const FIT_STEP_REM = 0.05;
 const MAX_COLUMNS = 3;
-const MIN_COLUMN_WIDTH_PX = 280;
+const MIN_COLUMN_WIDTH_PX = 240;
 
 export const ChordProViewer: React.FC<ChordProViewerProps> = ({
   song,
@@ -30,7 +30,7 @@ export const ChordProViewer: React.FC<ChordProViewerProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-  const [fit, setFit] = useState<{ columns: number; fontRem: number } | null>(null);
+  const [fit, setFit] = useState<{ columns: number; fontRem: number; split: boolean } | null>(null);
 
   // Re-run the fit whenever the container is resized
   useEffect(() => {
@@ -68,27 +68,38 @@ export const ChordProViewer: React.FC<ChordProViewerProps> = ({
     const maxColumns = Math.max(1, Math.min(MAX_COLUMNS, Math.floor(container.clientWidth / MIN_COLUMN_WIDTH_PX)));
     const maxRem = 1.4 * zoomLevel;
 
-    let best: { columns: number; fontRem: number } | null = null;
+    const sectionEls = Array.from(content.children) as HTMLElement[];
+    const setSplit = (split: boolean) => {
+      for (const el of sectionEls) el.style.breakInside = split ? 'auto' : 'avoid';
+    };
+
+    // At each size prefer keeping sections whole; only let a section flow across columns if that
+    // is what it takes (e.g. a song with no verse/chorus tags is one big section).
+    let best: { columns: number; fontRem: number; split: boolean } | null = null;
     search: for (let rem = maxRem; rem >= MIN_FIT_REM - 1e-6; rem -= FIT_STEP_REM) {
       container.style.fontSize = `${rem}rem`;
       for (let cols = 1; cols <= maxColumns; cols++) {
         content.style.columnCount = String(cols);
-        const available = container.clientHeight - content.offsetTop - bottomPad;
-        const fitsHeight = content.getBoundingClientRect().height <= available + 0.5;
-        const fitsWidth = content.scrollWidth <= content.clientWidth + 1;
-        if (fitsHeight && fitsWidth) {
-          best = { columns: cols, fontRem: Number(rem.toFixed(2)) };
-          break search;
+        for (const split of cols === 1 ? [false] : [false, true]) {
+          setSplit(split);
+          const available = container.clientHeight - content.offsetTop - bottomPad;
+          const fitsHeight = content.getBoundingClientRect().height <= available + 0.5;
+          const fitsWidth = content.scrollWidth <= content.clientWidth + 1;
+          if (fitsHeight && fitsWidth) {
+            best = { columns: cols, fontRem: Number(rem.toFixed(2)), split };
+            break search;
+          }
         }
       }
     }
 
+    for (const el of sectionEls) el.style.breakInside = '';
     container.style.fontSize = prevFontSize;
     content.style.columnCount = prevCount;
     content.style.paddingBottom = prevPad;
 
     setFit((prev) =>
-      prev && best && prev.columns === best.columns && prev.fontRem === best.fontRem ? prev : best
+      prev && best && prev.columns === best.columns && prev.fontRem === best.fontRem && prev.split === best.split ? prev : best
     );
   }, [song, zoomLevel, columnsPreference, isAutoScrolling, dimensions]);
 
@@ -165,6 +176,7 @@ export const ChordProViewer: React.FC<ChordProViewerProps> = ({
       >
         {song.sections.map((section, secIdx) => (
           <SectionView
+            allowSplit={Boolean(fitted?.split)}
             key={`sec-${secIdx}`}
             section={section}
             chordColor={chordColor}
@@ -177,16 +189,17 @@ export const ChordProViewer: React.FC<ChordProViewerProps> = ({
 };
 
 const SectionView: React.FC<{
+  allowSplit?: boolean;
   section: SongSection;
   chordColor?: string;
   onChordClick?: (chord: string) => void;
-}> = ({ section, chordColor, onChordClick }) => {
+}> = ({ allowSplit, section, chordColor, onChordClick }) => {
   const isChorus = section.type === 'chorus';
   const isBridge = section.type === 'bridge';
 
   return (
     <div
-      className={`break-inside-avoid mb-[1em] rounded-xl ${
+      className={`${allowSplit ? "break-inside-auto" : "break-inside-avoid"} mb-[1em] rounded-xl ${
         isChorus
           ? 'bg-stage-card/70 border-l-4 pl-[0.9em] pr-[0.5em] py-[0.6em] border-t border-r border-b border-stage-border/30'
           : isBridge
@@ -197,7 +210,7 @@ const SectionView: React.FC<{
     >
       {/* Section Title Header */}
       {section.title && (
-        <div className="mb-[0.5em] flex items-center gap-1.5">
+        <div className="mb-[0.5em] flex items-center gap-1.5 break-after-avoid">
           <span
             className={`text-[0.75em] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md font-mono ${
               isBridge
@@ -246,7 +259,7 @@ const LineView: React.FC<{
   }
 
   return (
-    <div className="flex flex-wrap items-end leading-tight tracking-normal font-sans group">
+    <div className="break-inside-avoid flex flex-wrap items-end leading-tight tracking-normal font-sans group">
       {line.tokens?.map((token, tIdx) => (
         <TokenView
           key={`tok-${tIdx}`}

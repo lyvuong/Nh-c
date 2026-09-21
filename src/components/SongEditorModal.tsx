@@ -99,8 +99,18 @@ export const SongEditorModal: React.FC<SongEditorModalProps> = ({
     const ta = textareaRef.current;
     if (!ta) return;
     const selected = content.substring(ta.selectionStart, ta.selectionEnd).replace(/\s*\n\s*/g, ' ').trim();
-    if (!selected) return insertSnippet(`{${directive}: ${placeholder}}`);
-    replaceRange(ta.selectionStart, ta.selectionEnd, `{${directive}: ${selected}}`);
+    // Directives only count when they are the whole line, so break the line around them if needed
+    let { selectionStart: start, selectionEnd: end } = ta;
+    if (start === end) {
+      // Nothing selected: add the tag on its own line after the current line instead of splitting it
+      const eol = content.indexOf('\n', start);
+      start = end = eol === -1 ? content.length : eol;
+    }
+    const before = content.substring(0, start);
+    const after = content.substring(end);
+    const prefix = before && !before.endsWith('\n') ? '\n' : '';
+    const suffix = after && !after.startsWith('\n') ? '\n' : '';
+    replaceRange(start, end, `${prefix}{${directive}: ${selected || placeholder}}${suffix}`);
   };
 
   // Section button: wrap the selected lines in {start_of_x} ... {end_of_x}; with no selection insert an empty block
@@ -108,7 +118,11 @@ export const SongEditorModal: React.FC<SongEditorModalProps> = ({
     const ta = textareaRef.current;
     if (!ta) return;
     if (ta.selectionStart === ta.selectionEnd) {
-      return insertSnippet(`{start_of_${kind}}\n\n{end_of_${kind}}`);
+      const eol = content.indexOf('\n', ta.selectionStart);
+      const pos = eol === -1 ? content.length : eol;
+      const prefix = pos > 0 && content[pos - 1] !== '\n' ? '\n' : '';
+      const suffix = pos < content.length && content[pos] !== '\n' ? '\n' : '';
+      return replaceRange(pos, pos, `${prefix}{start_of_${kind}}\n\n{end_of_${kind}}${suffix}`);
     }
     // Extend to whole lines so the tags sit on their own lines
     const start = content.lastIndexOf('\n', ta.selectionStart - 1) + 1;
