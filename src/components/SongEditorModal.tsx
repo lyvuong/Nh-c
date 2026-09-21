@@ -84,6 +84,40 @@ export const SongEditorModal: React.FC<SongEditorModalProps> = ({
     }, 50);
   };
 
+  const replaceRange = (start: number, end: number, text: string) => {
+    setContent(content.substring(0, start) + text + content.substring(end));
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(start + text.length, start + text.length);
+      }
+    }, 50);
+  };
+
+  // {directive: value} button: selected text becomes the value; with no selection insert the placeholder
+  const applyValueTag = (directive: string, placeholder: string) => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const selected = content.substring(ta.selectionStart, ta.selectionEnd).replace(/\s*\n\s*/g, ' ').trim();
+    if (!selected) return insertSnippet(`{${directive}: ${placeholder}}`);
+    replaceRange(ta.selectionStart, ta.selectionEnd, `{${directive}: ${selected}}`);
+  };
+
+  // Section button: wrap the selected lines in {start_of_x} ... {end_of_x}; with no selection insert an empty block
+  const applySectionTag = (kind: 'chorus' | 'verse' | 'bridge') => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    if (ta.selectionStart === ta.selectionEnd) {
+      return insertSnippet(`{start_of_${kind}}\n\n{end_of_${kind}}`);
+    }
+    // Extend to whole lines so the tags sit on their own lines
+    const start = content.lastIndexOf('\n', ta.selectionStart - 1) + 1;
+    let end = content.indexOf('\n', ta.selectionEnd);
+    if (end === -1) end = content.length;
+    const body = content.substring(start, end).replace(/^\n+|\n+$/g, '');
+    replaceRange(start, end, `{start_of_${kind}}\n${body}\n{end_of_${kind}}`);
+  };
+
   const handleSave = async () => {
     const meta = parsedPreview.metadata;
     await onSaveSong(
@@ -177,13 +211,13 @@ export const SongEditorModal: React.FC<SongEditorModalProps> = ({
             Quick Insert:
           </span>
           <button
-            onClick={() => insertSnippet('{title: Song Title}')}
+            onClick={() => applyValueTag('title', 'Song Title')}
             className="px-2 py-1 rounded bg-stage-cardHover hover:bg-stage-border text-cyan-300 font-mono border border-stage-border transition flex-shrink-0"
           >
             &#123;title&#125;
           </button>
           <button
-            onClick={() => insertSnippet('{artist: Artist Name}')}
+            onClick={() => applyValueTag('artist', 'Artist Name')}
             className="px-2 py-1 rounded bg-stage-cardHover hover:bg-stage-border text-cyan-300 font-mono border border-stage-border transition flex-shrink-0"
           >
             &#123;artist&#125;
@@ -195,37 +229,37 @@ export const SongEditorModal: React.FC<SongEditorModalProps> = ({
             [Chord]
           </button>
           <button
-            onClick={() => insertSnippet('{start_of_chorus}\n\n{end_of_chorus}')}
+            onClick={() => applySectionTag('chorus')}
             className="px-2 py-1 rounded bg-stage-cardHover hover:bg-stage-border text-stage-text font-mono border border-stage-border transition flex-shrink-0"
           >
             &#123;soc&#125; Chorus
           </button>
           <button
-            onClick={() => insertSnippet('{start_of_verse}\n\n{end_of_verse}')}
+            onClick={() => applySectionTag('verse')}
             className="px-2 py-1 rounded bg-stage-cardHover hover:bg-stage-border text-stage-text font-mono border border-stage-border transition flex-shrink-0"
           >
             &#123;sov&#125; Verse
           </button>
           <button
-            onClick={() => insertSnippet('{start_of_bridge}\n\n{end_of_bridge}')}
+            onClick={() => applySectionTag('bridge')}
             className="px-2 py-1 rounded bg-stage-cardHover hover:bg-stage-border text-amber-300 font-mono border border-stage-border transition flex-shrink-0"
           >
             &#123;sob&#125; Bridge
           </button>
           <button
-            onClick={() => insertSnippet('{comment: Guitar Solo}')}
+            onClick={() => applyValueTag('comment', 'Guitar Solo')}
             className="px-2 py-1 rounded bg-stage-cardHover hover:bg-stage-border text-amber-300 font-mono border border-stage-border transition flex-shrink-0"
           >
             &#123;comment&#125;
           </button>
           <button
-            onClick={() => insertSnippet('{key: Am}')}
+            onClick={() => applyValueTag('key', 'Am')}
             className="px-2 py-1 rounded bg-stage-cardHover hover:bg-stage-border text-stage-muted hover:text-stage-text font-mono border border-stage-border transition flex-shrink-0"
           >
             &#123;key&#125;
           </button>
           <button
-            onClick={() => insertSnippet('{tempo: 120}')}
+            onClick={() => applyValueTag('tempo', '120')}
             className="px-2 py-1 rounded bg-stage-cardHover hover:bg-stage-border text-stage-muted hover:text-stage-text font-mono border border-stage-border transition flex-shrink-0"
           >
             &#123;tempo&#125;
