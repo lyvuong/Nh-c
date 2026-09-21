@@ -11,7 +11,6 @@ import {
   Plus,
   ZoomIn,
   ZoomOut,
-  Sparkles
 } from 'lucide-react';
 import type { ParsedSong } from '../lib/chordParser';
 import { ChordProViewer } from './ChordProViewer';
@@ -34,10 +33,8 @@ interface StageModeViewProps {
   capo?: number;
   zoomLevel: number;
   onZoomChange: (delta: number) => void;
-  columnsPreference?: 'auto' | 1 | 2 | 3;
-  onColumnsChange?: (cols: 'auto' | 1 | 2 | 3) => void;
-  isAutoFit?: boolean;
-  onToggleAutoFit?: () => void;
+  columnsPreference?: 'auto' | 1;
+  onColumnsChange?: (cols: 'auto' | 1) => void;
   isAutoScrolling?: boolean;
   onToggleAutoScroll?: () => void;
   scrollSpeedBpm?: number;
@@ -64,8 +61,6 @@ export const StageModeView: React.FC<StageModeViewProps> = ({
   onZoomChange,
   columnsPreference = 'auto',
   onColumnsChange,
-  isAutoFit = true,
-  onToggleAutoFit,
   isAutoScrolling = false,
   onToggleAutoScroll,
   scrollSpeedBpm = 80,
@@ -207,7 +202,7 @@ export const StageModeView: React.FC<StageModeViewProps> = ({
           {/* Quick Columns Toggle */}
           {onColumnsChange && (
             <div className="hidden md:flex items-center bg-stage-cardHover rounded-lg border border-stage-border p-0.5 text-xs font-mono font-bold">
-              {(['auto', 1, 2, 3] as const).map((col) => (
+              {(['auto', 1] as const).map((col) => (
                 <button
                   key={col}
                   onClick={() => onColumnsChange(col)}
@@ -216,28 +211,12 @@ export const StageModeView: React.FC<StageModeViewProps> = ({
                       ? 'bg-cyan-500 text-slate-950 font-black shadow-xs'
                       : 'text-stage-muted hover:text-stage-text'
                   }`}
-                  title={`${col === 'auto' ? 'Auto Columns' : `${col} Column`}`}
+                  title={col === 'auto' ? 'Auto: fit song on one screen' : '1 Col: scroll to read'}
                 >
-                  {col === 'auto' ? 'Auto' : `${col}C`}
+                  {col === 'auto' ? 'Auto' : '1 Col'}
                 </button>
               ))}
             </div>
-          )}
-
-          {/* Auto-Fit Toggle */}
-          {onToggleAutoFit && (
-            <button
-              onClick={onToggleAutoFit}
-              className={`hidden sm:flex items-center gap-1 h-7 px-2 rounded-lg text-xs font-semibold border transition ${
-                isAutoFit
-                  ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40'
-                  : 'bg-stage-cardHover text-stage-muted border-stage-border hover:text-stage-text'
-              }`}
-              title="Toggle 1-Screen Auto-Fit vs Multi-Page Scroll"
-            >
-              <Sparkles className="w-3 h-3" />
-              <span>{isAutoFit ? 'Fit' : 'Scroll'}</span>
-            </button>
           )}
 
           {/* Quick Auto-Scroll Toggle & Stepper */}
@@ -353,7 +332,6 @@ export const StageModeView: React.FC<StageModeViewProps> = ({
           capo={capo}
           zoomLevel={zoomLevel}
           columnsPreference={columnsPreference}
-          isAutoFit={isAutoFit}
           isAutoScrolling={isAutoScrolling}
           themeStyle={stageTheme}
           chordColor={chordColor}

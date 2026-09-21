@@ -33,8 +33,7 @@ export function App() {
   const [semitones, setSemitones] = useState<number>(0);
   const [currentCapo, setCurrentCapo] = useState<number>(0);
   const [zoomLevel, setZoomLevel] = useState<number>(1.0);
-  const [columnsPreference, setColumnsPreference] = useState<'auto' | 1 | 2 | 3>('auto');
-  const [isAutoFit, setIsAutoFit] = useState<boolean>(true);
+  const [columnsPreference, setColumnsPreference] = useState<'auto' | 1>('auto');
 
   // Auto-scroll
   const [isAutoScrolling, setIsAutoScrolling] = useState<boolean>(false);
@@ -440,8 +439,6 @@ export function App() {
           onZoomChange={(delta) => setZoomLevel((z) => Math.max(0.6, Math.min(1.8, z + delta)))}
           columnsPreference={columnsPreference}
           onColumnsChange={setColumnsPreference}
-          isAutoFit={isAutoFit}
-          onToggleAutoFit={() => setIsAutoFit(!isAutoFit)}
           isAutoScrolling={isAutoScrolling}
           onToggleAutoScroll={() => setIsAutoScrolling(!isAutoScrolling)}
           scrollSpeedBpm={scrollSpeedBpm}
@@ -512,8 +509,6 @@ export function App() {
             onZoomChange={(delta) => setZoomLevel((z) => Math.max(0.6, Math.min(1.8, z + delta)))}
             columns={columnsPreference}
             onColumnsChange={setColumnsPreference}
-            isAutoFit={isAutoFit}
-            onToggleAutoFit={() => setIsAutoFit(!isAutoFit)}
             isAutoScrolling={isAutoScrolling}
             onToggleAutoScroll={() => setIsAutoScrolling(!isAutoScrolling)}
             scrollSpeedBpm={scrollSpeedBpm}
@@ -538,7 +533,6 @@ export function App() {
               capo={currentCapo}
               zoomLevel={zoomLevel}
               columnsPreference={columnsPreference}
-              isAutoFit={isAutoFit}
               isAutoScrolling={isAutoScrolling}
               themeStyle={stageTheme}
               chordColor={chordColor}

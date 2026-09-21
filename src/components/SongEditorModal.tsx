@@ -279,7 +279,6 @@ export const SongEditorModal: React.FC<SongEditorModalProps> = ({
                 song={parsedPreview}
                 zoomLevel={0.9}
                 columnsPreference="auto"
-                isAutoFit={true}
               />
             </div>
           </div>

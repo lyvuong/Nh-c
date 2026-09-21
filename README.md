@@ -54,7 +54,7 @@ Designed from the ground up for live performers, band rehearsals, acoustic worsh
 
 - **🎼 True ChordPro Syntax Engine**: Parses standard `.cho`, `.crd`, `.pro`, `.chordpro`, and `.txt` files with support for directives (`{title}`, `{subtitle}`, `{artist}`, `{key}`, `{capo}`, `{tempo}`, `{time}`, `{comment}`, `{soc}`/`{eoc}`).
 - **📁 One-Click Batch Folder Import**: Open entire folders of chord charts directly from your computer or tablet via the File System Access API.
-- **⚡ 1-Screen Auto-Fit (Zero Page Turning)**: Smart multi-column engine (1, 2, or 3 columns) dynamically scales font size to fit complete songs onto a single view.
+- **⚡ 1-Screen Auto-Fit (Zero Page Turning)**: Measures the rendered song and picks the largest font size and fewest columns (up to 3) that fit the whole song on one screen.
 - **🎵 Real-Time Semitone Transpose & Capo**: Instant $+1 / -1$ semitone transposition with enharmonic flat/sharp toggle (`♭` vs `#`) and slash chord support (`G/B`, `C#m7b5`, `F#/A#`).
 - **🎸 Stage Mode with Screen Wake Lock**: Distraction-free, high-contrast performance view with **Wake Lock API** to ensure your tablet screen stays awake throughout the gig.
 - **🦶 Hands-Free Foot Pedal Support**: Bluetooth page-turner integration (AirTurn, PageFlip, Donner, Coda Stomp) and keyboard hotkeys.
@@ -135,8 +135,8 @@ npm run preview
   - Full hands-free Bluetooth pedal navigation.
 
 ### 6. 1-Screen Auto-Fit & Multi-Column Layout
-- Toggle the **"Auto-Fit"** button to automatically calculate the optimal font size and column layout so the entire song fits onto your screen without scrolling.
-- Alternatively, select **1, 2, or 3 Columns** manually depending on whether your tablet is in portrait or landscape orientation.
+- **Auto** measures the rendered song and picks the largest font size and fewest columns so the entire song fits onto your screen without scrolling. If it can't fit even at the smallest size, it falls back to a scrolling single column.
+- **1 Col** shows a single readable column that you scroll.
 - Use **"Auto-Scroll"** with adjustable BPM speed for longer arrangements.
 
 ### 7. Built-in ChordPro Editor

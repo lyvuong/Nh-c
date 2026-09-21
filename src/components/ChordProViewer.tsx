@@ -1,44 +1,47 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useLayoutEffect, useState } from 'react';
 import type { ParsedSong, SongSection, SongLine, ChordToken } from '../lib/chordParser';
-import { computeAutoFit } from '../lib/autoFit';
 
 interface ChordProViewerProps {
   song: ParsedSong;
   capo?: number;
   zoomLevel: number;
-  columnsPreference: 'auto' | 1 | 2 | 3;
-  isAutoFit: boolean;
+  // 'auto' measures the rendered song and fits it on one screen; 1 is a plain scrolling column
+  columnsPreference: 'auto' | 1;
   isAutoScrolling?: boolean;
   themeStyle?: string;
   chordColor?: string;
   onChordClick?: (chord: string) => void;
 }
 
+const MIN_FIT_REM = 0.5;
+const FIT_STEP_REM = 0.05;
+const MAX_COLUMNS = 3;
+const MIN_COLUMN_WIDTH_PX = 280;
+
 export const ChordProViewer: React.FC<ChordProViewerProps> = ({
   song,
   capo = 0,
   zoomLevel,
   columnsPreference,
-  isAutoFit,
   isAutoScrolling = false,
   chordColor,
   onChordClick,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [fit, setFit] = useState<{ columns: number; fontRem: number } | null>(null);
 
-  // Measure container dimensions for dynamic auto-fit
+  // Re-run the fit whenever the container is resized
   useEffect(() => {
     if (!containerRef.current) return;
 
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        if (entry.contentRect) {
-          setDimensions({
-            width: entry.contentRect.width,
-            height: entry.contentRect.height,
-          });
-        }
+        setDimensions({
+          width: entry.contentRect.width,
+          height: entry.contentRect.height,
+        });
       }
     });
 
@@ -46,27 +49,48 @@ export const ChordProViewer: React.FC<ChordProViewerProps> = ({
     return () => observer.disconnect();
   }, []);
 
-  // Total lines calculation for auto-fit sizing
-  const totalLineCount = useMemo(() => {
-    let count = 0;
-    for (const sec of song.sections) {
-      count += 2; // header allowance
-      count += sec.lines.length;
+  // Measurement-based fit: try the largest font first and the fewest columns, and keep the
+  // first combination whose real rendered height fits the space below the header.
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    const content = contentRef.current;
+    if (columnsPreference !== 'auto' || isAutoScrolling || !container || !content) {
+      setFit(null);
+      return;
     }
-    return Math.max(count, 10);
-  }, [song]);
 
-  // Compute 1-screen auto-fit parameters
-  const fitResult = useMemo(() => {
-    return computeAutoFit({
-      containerWidth: dimensions.width,
-      containerHeight: dimensions.height,
-      totalLines: totalLineCount,
-      totalSections: song.sections.length,
-      preferredColumns: columnsPreference,
-      userZoomLevel: zoomLevel,
-    });
-  }, [dimensions, totalLineCount, song.sections.length, columnsPreference, zoomLevel]);
+    const prevFontSize = container.style.fontSize;
+    const prevCount = content.style.columnCount;
+    const prevPad = content.style.paddingBottom;
+    content.style.paddingBottom = '0';
+
+    const bottomPad = parseFloat(getComputedStyle(container).paddingBottom) || 0;
+    const maxColumns = Math.max(1, Math.min(MAX_COLUMNS, Math.floor(container.clientWidth / MIN_COLUMN_WIDTH_PX)));
+    const maxRem = 1.4 * zoomLevel;
+
+    let best: { columns: number; fontRem: number } | null = null;
+    search: for (let rem = maxRem; rem >= MIN_FIT_REM - 1e-6; rem -= FIT_STEP_REM) {
+      container.style.fontSize = `${rem}rem`;
+      for (let cols = 1; cols <= maxColumns; cols++) {
+        content.style.columnCount = String(cols);
+        const available = container.clientHeight - content.offsetTop - bottomPad;
+        const fitsHeight = content.getBoundingClientRect().height <= available + 0.5;
+        const fitsWidth = content.scrollWidth <= content.clientWidth + 1;
+        if (fitsHeight && fitsWidth) {
+          best = { columns: cols, fontRem: Number(rem.toFixed(2)) };
+          break search;
+        }
+      }
+    }
+
+    container.style.fontSize = prevFontSize;
+    content.style.columnCount = prevCount;
+    content.style.paddingBottom = prevPad;
+
+    setFit((prev) =>
+      prev && best && prev.columns === best.columns && prev.fontRem === best.fontRem ? prev : best
+    );
+  }, [song, zoomLevel, columnsPreference, isAutoScrolling, dimensions]);
 
   // Scroll to top whenever the song changes
   useEffect(() => {
@@ -75,15 +99,16 @@ export const ChordProViewer: React.FC<ChordProViewerProps> = ({
     }
   }, [song.metadata.title, song.metadata.key]);
 
-  const activeColumns = columnsPreference === 'auto' ? fitResult.columns : columnsPreference;
-  const activeFontSize = isAutoFit && fitResult.canFitOnOneScreen ? `${fitResult.fontSizeRem}rem` : `${1.0 * zoomLevel}rem`;
-  const canFitBalanced = isAutoFit && fitResult.canFitOnOneScreen && !isAutoScrolling;
+  // Auto that fits -> fixed one-screen layout; otherwise (1 Col, auto-scrolling, or too long) -> scrolling column
+  const fitted = columnsPreference === 'auto' && !isAutoScrolling ? fit : null;
+  const activeColumns = fitted ? fitted.columns : 1;
+  const activeFontSize = fitted ? `${fitted.fontRem}rem` : `${zoomLevel}rem`;
 
   return (
     <div
       ref={containerRef}
-      className={`chordpro-scroll-surface w-full h-full p-3 sm:p-5 flex flex-col select-text transition-colors duration-150 ${
-        canFitBalanced ? 'overflow-hidden' : 'overflow-y-auto'
+      className={`chordpro-scroll-surface relative w-full h-full p-3 sm:p-5 flex flex-col select-text transition-colors duration-150 ${
+        fitted ? 'overflow-hidden' : 'overflow-y-auto'
       }`}
       style={{ fontSize: activeFontSize }}
     >
@@ -130,13 +155,12 @@ export const ChordProViewer: React.FC<ChordProViewerProps> = ({
 
       {/* Multi-Column Song Sections Container */}
       <div
-        className={`w-full ${canFitBalanced ? '' : 'pb-36'}`}
+        ref={contentRef}
+        className={`w-full ${fitted ? '' : 'pb-36'}`}
         style={{
           columnCount: activeColumns,
           columnGap: '1.75rem',
-          columnFill: canFitBalanced ? 'balance' : 'auto',
-          height: canFitBalanced ? 'calc(100% - 50px)' : 'auto',
-          minHeight: canFitBalanced ? 'calc(100% - 50px)' : 'auto',
+          columnFill: 'balance',
         }}
       >
         {song.sections.map((section, secIdx) => (
@@ -162,18 +186,18 @@ const SectionView: React.FC<{
 
   return (
     <div
-      className={`break-inside-avoid mb-4 rounded-xl transition-all ${
+      className={`break-inside-avoid mb-[1em] rounded-xl ${
         isChorus
-          ? 'bg-stage-card/70 border-l-4 pl-3.5 pr-2 py-2.5 border-t border-r border-b border-stage-border/30'
+          ? 'bg-stage-card/70 border-l-4 pl-[0.9em] pr-[0.5em] py-[0.6em] border-t border-r border-b border-stage-border/30'
           : isBridge
-          ? 'bg-stage-card/40 border-l-4 border-l-amber-500 pl-3.5 pr-2 py-2 border-t border-r border-b border-stage-border/20'
-          : 'pl-1 py-1'
+          ? 'bg-stage-card/40 border-l-4 border-l-amber-500 pl-[0.9em] pr-[0.5em] py-[0.5em] border-t border-r border-b border-stage-border/20'
+          : 'pl-[0.25em] py-[0.25em]'
       }`}
       style={isChorus ? { borderLeftColor: chordColor || 'rgb(var(--color-stage-accent))' } : undefined}
     >
       {/* Section Title Header */}
       {section.title && (
-        <div className="mb-2 flex items-center gap-1.5">
+        <div className="mb-[0.5em] flex items-center gap-1.5">
           <span
             className={`text-[0.75em] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md font-mono ${
               isBridge
@@ -190,7 +214,7 @@ const SectionView: React.FC<{
       )}
 
       {/* Section Lines */}
-      <div className="space-y-2">
+      <div className="space-y-[0.5em]">
         {section.lines.map((line, lIdx) => (
           <LineView
             key={`line-${lIdx}`}
@@ -211,14 +235,14 @@ const LineView: React.FC<{
 }> = ({ line, chordColor, onChordClick }) => {
   if (line.type === 'comment') {
     return (
-      <div className="my-1.5 px-2.5 py-1 rounded bg-amber-500/10 border-l-2 border-amber-500 text-amber-800 dark:text-amber-200 font-semibold text-[0.85em] font-mono italic">
+      <div className="my-[0.4em] px-[0.6em] py-[0.25em] rounded bg-amber-500/10 border-l-2 border-amber-500 text-amber-800 dark:text-amber-200 font-semibold text-[0.85em] font-mono italic">
         💡 {line.commentText}
       </div>
     );
   }
 
   if (line.type === 'empty') {
-    return <div className="h-2" />;
+    return <div className="h-[0.5em]" />;
   }
 
   return (

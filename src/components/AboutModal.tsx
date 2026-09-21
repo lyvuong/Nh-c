@@ -199,7 +199,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
                 <div>
                   <h5 className="font-bold text-xs text-stage-text">1-Screen Auto-Fit Engine</h5>
                   <p className="text-[11px] text-stage-muted mt-0.5 leading-normal">
-                    Smart multi-column layout (1, 2, or 3 columns) dynamically scales font size so the complete song fits on one screen without scrolling.
+                    Auto mode measures the rendered song and picks the font size and column count so the complete song fits on one screen. Use 1 Col to scroll instead.
                   </p>
                 </div>
               </div>

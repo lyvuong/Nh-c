@@ -9,7 +9,6 @@ import {
   Plus,
   ZoomIn, 
   ZoomOut, 
-  Sparkles, 
   Edit3
 } from 'lucide-react';
 import { ROOT_NOTES_SHARP, ROOT_NOTES_FLAT } from '../lib/chordTransposer';
@@ -23,10 +22,8 @@ interface TransposeBarProps {
   onSelectKey: (targetKey: string) => void;
   zoomLevel: number;
   onZoomChange: (delta: number) => void;
-  columns: 'auto' | 1 | 2 | 3;
-  onColumnsChange: (cols: 'auto' | 1 | 2 | 3) => void;
-  isAutoFit: boolean;
-  onToggleAutoFit: () => void;
+  columns: 'auto' | 1;
+  onColumnsChange: (cols: 'auto' | 1) => void;
   isAutoScrolling: boolean;
   onToggleAutoScroll: () => void;
   scrollSpeedBpm: number;
@@ -47,8 +44,6 @@ export const TransposeBar: React.FC<TransposeBarProps> = ({
   onZoomChange,
   columns,
   onColumnsChange,
-  isAutoFit,
-  onToggleAutoFit,
   isAutoScrolling,
   onToggleAutoScroll,
   scrollSpeedBpm = 80,
@@ -156,22 +151,8 @@ export const TransposeBar: React.FC<TransposeBarProps> = ({
         </button>
       </div>
 
-      {/* View Options: 1-Screen Auto-Fit, Columns, Zoom, Stage Mode */}
+      {/* View Options: Layout (Auto-Fit / 1 Col scroll), Zoom, Scroll, Edit */}
       <div className="flex items-center gap-1.5 flex-wrap">
-        {/* 1-Screen AutoFit Toggle Button */}
-        <button
-          onClick={onToggleAutoFit}
-          className={`flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold transition shadow-sm ${
-            isAutoFit
-              ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-emerald-500/20 font-bold ring-1 ring-emerald-400'
-              : 'bg-stage-border/60 hover:bg-stage-cardHover text-stage-muted border border-stage-border'
-          }`}
-          title="Render song to fit on one screen without scrolling"
-        >
-          <Sparkles className={`w-3.5 h-3.5 ${isAutoFit ? 'text-white animate-pulse' : 'text-stage-accent'}`} />
-          <span>Fit 1-Screen</span>
-        </button>
-
         {/* Columns Dropdown / Toggle */}
         <div className="flex items-center bg-stage-cardHover rounded-lg border border-stage-border p-0.5">
           <button
@@ -179,7 +160,7 @@ export const TransposeBar: React.FC<TransposeBarProps> = ({
             className={`px-2 py-1 text-xs font-medium rounded ${
               columns === 'auto' ? 'bg-stage-accent text-slate-950 font-bold shadow' : 'text-stage-muted hover:text-stage-text'
             }`}
-            title="Auto-detect columns based on screen size"
+            title="Auto: fit the whole song on one screen"
           >
             Auto
           </button>
@@ -188,27 +169,9 @@ export const TransposeBar: React.FC<TransposeBarProps> = ({
             className={`px-2 py-1 text-xs font-medium rounded ${
               columns === 1 ? 'bg-stage-accent text-slate-950 font-bold shadow' : 'text-stage-muted hover:text-stage-text'
             }`}
-            title="Single Column Layout"
+            title="1 Col: single column, scroll to read"
           >
             1 Col
-          </button>
-          <button
-            onClick={() => onColumnsChange(2)}
-            className={`px-2 py-1 text-xs font-medium rounded ${
-              columns === 2 ? 'bg-stage-accent text-slate-950 font-bold shadow' : 'text-stage-muted hover:text-stage-text'
-            }`}
-            title="Two Columns Layout"
-          >
-            2 Cols
-          </button>
-          <button
-            onClick={() => onColumnsChange(3)}
-            className={`px-2 py-1 text-xs font-medium rounded hidden md:inline ${
-              columns === 3 ? 'bg-stage-accent text-slate-950 font-bold shadow' : 'text-stage-muted hover:text-stage-text'
-            }`}
-            title="Three Columns Layout"
-          >
-            3 Cols
           </button>
         </div>
 
