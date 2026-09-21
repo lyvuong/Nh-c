@@ -285,7 +285,7 @@ const TokenView: React.FC<{
   const hasChord = Boolean(token.chord && token.chord.trim().length > 0);
 
   return (
-    <div className="inline-flex flex-col items-start min-w-[0.5em] align-top mr-[0.15em] relative">
+    <div className="inline-flex flex-col items-start min-w-[0.5em] max-w-full align-top mr-[0.15em] relative">
       {/* Chord Line (Above Lyrics) */}
       <div className="min-h-[1.25em] flex items-center">
         {hasChord ? (
@@ -304,7 +304,7 @@ const TokenView: React.FC<{
       </div>
 
       {/* Lyric Line (Below Chords) */}
-      <div className="text-stage-text whitespace-pre text-[1.0em] font-medium leading-tight">
+      <div className="text-stage-text whitespace-pre-wrap break-words text-[1.0em] font-medium leading-tight">
         {token.lyric || '\u00A0'}
       </div>
     </div>
