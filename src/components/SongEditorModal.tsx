@@ -279,6 +279,13 @@ export const SongEditorModal: React.FC<SongEditorModalProps> = ({
             &#123;tempo&#125;
           </button>
           <button
+            onClick={() => applyValueTag('style', 'Tango')}
+            className="px-2 py-1 rounded bg-stage-cardHover hover:bg-stage-border text-stage-muted hover:text-stage-text font-mono border border-stage-border transition flex-shrink-0"
+            title="Rhythm style, e.g. Tango, Twist, Bolero"
+          >
+            &#123;style&#125;
+          </button>
+          <button
             onClick={() => setContent(song?.content || DEFAULT_NEW_SONG_TEMPLATE)}
             className="px-2 py-1 rounded bg-stage-cardHover hover:bg-stage-border text-slate-400 hover:text-slate-200 font-mono border border-stage-border transition flex-shrink-0 ml-auto flex items-center gap-1"
             title="Reset to original content before edits"

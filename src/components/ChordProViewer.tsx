@@ -156,6 +156,11 @@ export const ChordProViewer: React.FC<ChordProViewerProps> = ({
               {song.metadata.tempo} BPM
             </span>
           )}
+          {song.metadata.style && (
+            <span className="px-2 py-0.5 rounded-md bg-stage-cardHover border border-stage-border text-purple-400 font-mono text-xs font-bold">
+              {song.metadata.style}
+            </span>
+          )}
           {song.metadata.time && (
             <span className="px-2 py-0.5 rounded-md bg-stage-cardHover border border-stage-border text-stage-muted font-mono text-xs">
               {song.metadata.time}

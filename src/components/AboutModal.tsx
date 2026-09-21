@@ -318,7 +318,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
             <div className="bg-stage-bg p-3 rounded-xl border border-stage-border font-mono text-[11px] space-y-1 text-stage-text overflow-x-auto">
               <p><span className="text-cyan-600 dark:text-cyan-400 font-bold">{'{title: Song Title}'}</span> — Song name</p>
               <p><span className="text-cyan-600 dark:text-cyan-400 font-bold">{'{artist: Artist Name}'}</span> — Artist/Composer</p>
-              <p><span className="text-cyan-600 dark:text-cyan-400 font-bold">{'{key: G}'}</span>, <span className="text-cyan-600 dark:text-cyan-400 font-bold">{'{capo: 2}'}</span>, <span className="text-cyan-600 dark:text-cyan-400 font-bold">{'{tempo: 120}'}</span> — Song metadata</p>
+              <p><span className="text-cyan-600 dark:text-cyan-400 font-bold">{'{key: G}'}</span>, <span className="text-cyan-600 dark:text-cyan-400 font-bold">{'{capo: 2}'}</span>, <span className="text-cyan-600 dark:text-cyan-400 font-bold">{'{tempo: 120}'}</span>, <span className="text-cyan-600 dark:text-cyan-400 font-bold">{'{style: Tango}'}</span> — Song metadata</p>
               <p><span className="text-cyan-600 dark:text-cyan-400 font-bold">{'{comment: Intro / Solo}'}</span> — Section annotation banners</p>
               <p><span className="text-amber-600 dark:text-amber-400 font-bold">[G]</span> <span className="text-stage-muted">Amazing</span> <span className="text-amber-600 dark:text-amber-400 font-bold">[C]</span><span className="text-stage-muted">Grace how</span> <span className="text-amber-600 dark:text-amber-400 font-bold">[G]</span><span className="text-stage-muted">sweet the sound</span> — Inline chords</p>
             </div>

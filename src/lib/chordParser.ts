@@ -29,6 +29,7 @@ export interface SongMetadata {
   capo?: number;
   tempo?: string;
   time?: string;
+  style?: string;
   tags?: string[];
   originalKey?: string;
   duration?: string;
@@ -101,6 +102,9 @@ export function parseChordPro(text: string): ParsedSong {
         case 'tempo':
         case 'bpm':
           metadata.tempo = value;
+          break;
+        case 'style':
+          metadata.style = value;
           break;
         case 'time':
           metadata.time = value;
