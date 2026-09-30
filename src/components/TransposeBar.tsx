@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react';
 import { 
-  ChevronDown, 
-  ChevronUp, 
-  RotateCcw, 
+  ChevronDown,
+  RotateCcw,
   Play, 
   Square, 
   Minus,
@@ -30,7 +29,6 @@ interface TransposeBarProps {
   onScrollSpeedChange: (speed: number) => void;
   onEditSong: () => void;
   preferFlats: boolean;
-  onTogglePreferFlats: () => void;
 }
 
 export const TransposeBar: React.FC<TransposeBarProps> = ({
@@ -50,7 +48,6 @@ export const TransposeBar: React.FC<TransposeBarProps> = ({
   onScrollSpeedChange,
   onEditSong,
   preferFlats,
-  onTogglePreferFlats,
 }) => {
   const rootNotes = preferFlats ? ROOT_NOTES_FLAT : ROOT_NOTES_SHARP;
 
@@ -65,16 +62,6 @@ export const TransposeBar: React.FC<TransposeBarProps> = ({
         <span className="text-xs font-semibold text-stage-muted uppercase tracking-wider hidden sm:inline mr-1">
           Key
         </span>
-
-        {/* Transpose Down -1 */}
-        <button
-          onClick={() => onTranspose(-1)}
-          className="flex items-center justify-center h-8 px-2.5 rounded-lg bg-stage-border/60 hover:bg-stage-cardHover text-stage-text active:scale-95 transition font-mono font-bold text-sm border border-stage-border"
-          title="Transpose Down 1 Semitone (-1)"
-        >
-          <ChevronDown className="w-4 h-4 mr-0.5 text-stage-accent" />
-          -1
-        </button>
 
         {/* Current Key Indicator & Dropdown */}
         <div className="relative inline-block">
@@ -111,16 +98,6 @@ export const TransposeBar: React.FC<TransposeBarProps> = ({
           </div>
         </div>
 
-        {/* Transpose Up +1 */}
-        <button
-          onClick={() => onTranspose(1)}
-          className="flex items-center justify-center h-8 px-2.5 rounded-lg bg-stage-border/60 hover:bg-stage-cardHover text-stage-text active:scale-95 transition font-mono font-bold text-sm border border-stage-border"
-          title="Transpose Up 1 Semitone (+1)"
-        >
-          +1
-          <ChevronUp className="w-4 h-4 ml-0.5 text-stage-accent" />
-        </button>
-
         {/* Reset Transpose Button */}
         {semitones !== 0 ? (
           <button
@@ -140,15 +117,6 @@ export const TransposeBar: React.FC<TransposeBarProps> = ({
             Orig: {originalKey}
           </span>
         ) : null}
-
-        {/* Flats vs Sharps toggle */}
-        <button
-          onClick={onTogglePreferFlats}
-          className="h-8 px-2 rounded-lg bg-stage-border/40 hover:bg-stage-cardHover text-xs font-mono text-stage-muted hover:text-stage-text transition border border-stage-border"
-          title="Toggle Enharmonic (# vs ♭)"
-        >
-          {preferFlats ? '♭ Flats' : '# Sharps'}
-        </button>
       </div>
 
       {/* View Options: Layout (Auto-Fit / 1 Col scroll), Zoom, Scroll, Edit */}

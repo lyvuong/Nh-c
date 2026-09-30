@@ -518,7 +518,6 @@ export function App() {
               setIsSongEditorOpen(true);
             }}
             preferFlats={preferFlats}
-            onTogglePreferFlats={() => setPreferFlats(!preferFlats)}
           />
         )}
 
