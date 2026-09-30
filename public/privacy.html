@@ -39,10 +39,9 @@
 <p>Songs, setlists, settings and your optional Google Drive settings are stored locally in your browser (IndexedDB and localStorage). This data never leaves your device unless you explicitly use an export or Google Drive feature. Clearing your browser data removes it.</p>
 
 <h2>2. Google Drive (optional)</h2>
-<p>If you choose to connect Google Drive, the app asks for your permission using Google sign-in and requests only these scopes:</p>
+<p>If you choose to connect Google Drive, the app asks for your permission using Google sign-in and requests only one scope:</p>
 <ul>
-<li><code>https://www.googleapis.com/auth/drive.readonly</code> – used only to list and download chord-sheet files from a Drive folder you choose, so they can be imported into the app.</li>
-<li><code>https://www.googleapis.com/auth/drive.file</code> – used only to create, update and read a single library file (your songs and setlists) in a Drive folder you pick. This scope cannot see any other files in your Drive.</li>
+<li><code>https://www.googleapis.com/auth/drive.file</code> – lets the app read only the chord-sheet files you select in Google’s file picker (so they can be imported into the app), and create, update and read a single library file (your songs and setlists) in a Drive folder you pick. This scope cannot see any other files in your Drive.</li>
 </ul>
 <p>The access token is obtained in your browser and used directly between your browser and Google. The Google Client ID you enter is stored only in your browser. We do not receive, store, or have access to your Google account, your tokens, or your Drive files.</p>
 

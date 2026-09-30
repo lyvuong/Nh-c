@@ -27,6 +27,7 @@ import {
   requestDriveAccessToken, 
   fetchDriveFolderName, 
   fetchDriveFolderFiles,
+  isSupportedChordFile,
   fetchDriveFileContent,
   showDrivePicker,
   pullLibraryFromFolder,
@@ -165,8 +166,9 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
       await showDrivePicker({
         accessToken: token,
         apiKey: apiKeyInput.trim() || undefined,
-        onSelected: async (item) => {
-          if (!item.isFolder) {
+        mode: 'folder',
+        onSelected: async ([item]) => {
+          if (!item || item.mimeType !== 'application/vnd.google-apps.folder') {
             setErrorMessage('Please pick a folder to publish into, not a single file.');
             setIsLibraryBusy(false);
             return;
@@ -267,7 +269,7 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
     }
   };
 
-  // Launch Google Picker native popup
+  // Launch Google Picker so the user ticks the chord sheets to import (drive.file only reaches picked files)
   const handleOpenGooglePicker = async () => {
     setErrorMessage(null);
     const clientId = clientIdInput.trim();
@@ -287,17 +289,26 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
       await showDrivePicker({
         accessToken: token,
         apiKey: apiKeyInput.trim() || undefined,
-        onSelected: async (item) => {
-          if (item.isFolder) {
-            setFolderInput(`https://drive.google.com/drive/folders/${item.id}`);
-            // Automatically trigger folder scan
-            setTimeout(() => {
-              handleScanFolder();
-            }, 100);
-          } else {
-            // Single file picked
-            setFolderInput(item.id);
+        mode: 'files',
+        onSelected: (items) => {
+          const files = items.filter(
+            (f) => f.mimeType === 'application/vnd.google-apps.document' || isSupportedChordFile(f.name)
+          );
+          setSyncResult(null);
+          setScannedFiles(files);
+          setSelectedFileIds(new Set(files.map((f) => f.id)));
+          if (files.length === 0) {
+            setErrorMessage('None of the picked files are Google Docs or ChordPro (.cho/.crd/.txt) files.');
+            return;
           }
+          const updatedConfig: GoogleDriveConfig = {
+            ...loadDriveConfig(),
+            clientId,
+            pickedFiles: files,
+            syncMode: 'oauth',
+          };
+          setConfig(updatedConfig);
+          saveDriveConfig(updatedConfig);
         },
       });
     } catch (err: any) {
@@ -573,40 +584,34 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
           {activeTab === 'oauth' && (
             <div className="space-y-3.5">
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="font-mono font-bold text-stage-muted uppercase tracking-wider block">
-                    Shared Google Drive Folder Link or Folder ID
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleOpenGooglePicker}
-                    className="text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1 cursor-pointer text-[11px]"
-                  >
-                    <FolderOpen className="w-3.5 h-3.5" />
-                    <span>Browse Drive</span>
-                  </button>
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={folderInput}
-                    onChange={(e) => setFolderInput(e.target.value)}
-                    placeholder="https://drive.google.com/drive/folders/1abc... or Folder ID"
-                    className="flex-1 h-10 px-3 rounded-xl bg-stage-bg border border-stage-border text-stage-text placeholder:text-stage-muted font-mono text-xs focus:outline-none focus:ring-1 focus:ring-stage-accent"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleScanFolder}
-                    disabled={isScanning || isSyncing}
-                    className="px-4 h-10 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer disabled:opacity-50 flex-shrink-0 shadow"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 ${isScanning ? 'animate-spin' : ''}`} />
-                    <span>Scan Files</span>
-                  </button>
-                </div>
+                <label className="font-mono font-bold text-stage-muted uppercase tracking-wider block">
+                  Import chord sheets
+                </label>
+                <button
+                  type="button"
+                  onClick={handleOpenGooglePicker}
+                  disabled={isScanning || isSyncing}
+                  className="px-4 h-10 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer disabled:opacity-50 shadow"
+                >
+                  <FolderOpen className="w-3.5 h-3.5" />
+                  <span>Pick Files from Drive</span>
+                </button>
                 <p className="text-[11px] text-stage-muted">
-                  Paste the shared folder link from your browser or click <strong>Browse Drive</strong> to pick visually.
+                  Open your folder in Google&apos;s picker and tick the songs to import (Ctrl/Cmd or Shift-click for several, Ctrl+A for all). Nhạc can only read the files you pick.
                 </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-mono font-bold text-stage-muted uppercase tracking-wider block">
+                  Library Folder Link or ID (for Pull Library)
+                </label>
+                <input
+                  type="text"
+                  value={folderInput}
+                  onChange={(e) => setFolderInput(e.target.value)}
+                  placeholder="https://drive.google.com/drive/folders/1abc... or Folder ID"
+                  className="w-full h-10 px-3 rounded-xl bg-stage-bg border border-stage-border text-stage-text placeholder:text-stage-muted font-mono text-xs focus:outline-none focus:ring-1 focus:ring-stage-accent"
+                />
               </div>
 
               {/* Advanced OAuth Settings */}

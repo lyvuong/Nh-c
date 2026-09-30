@@ -14,6 +14,8 @@ export interface GoogleDriveConfig {
   lastPublishTime?: number;
   syncMode?: 'oauth' | 'public' | 'local';
   autoSyncOnLoad?: boolean;
+  // Files picked via the Drive Picker (OAuth mode); drive.file can only read what the user picked
+  pickedFiles?: DriveFileItem[];
 }
 
 export interface ExtractedDriveInfo {
@@ -184,11 +186,14 @@ export function loadGooglePickerScript(): Promise<void> {
   });
 }
 
-// Open native Google Drive visual Picker modal dialog
+// Open native Google Drive visual Picker modal dialog.
+// 'folder' picks a single folder (e.g. where to publish the library); 'files' lets the user tick
+// several chord sheets. Under drive.file the app can only read files the user picked here.
 export async function showDrivePicker(options: {
   accessToken: string;
   apiKey?: string;
-  onSelected: (item: { id: string; name: string; isFolder: boolean; mimeType: string }) => void;
+  mode?: 'folder' | 'files';
+  onSelected: (items: DriveFileItem[]) => void;
 }): Promise<void> {
   await loadGooglePickerScript();
   const google = (window as any).google;
@@ -196,44 +201,48 @@ export async function showDrivePicker(options: {
     throw new Error('Google Picker library could not be initialized');
   }
 
-  // Allow selecting folders and Docs / text files
-  const docsView = new google.picker.DocsView()
-    .setIncludeFolders(true)
-    .setSelectFolderEnabled(true);
-
+  const mode = options.mode || 'files';
   const builder = new google.picker.PickerBuilder()
-    .addView(docsView)
-    .addView(google.picker.ViewId.FOLDERS)
     .setOAuthToken(options.accessToken)
     .setCallback((data: any) => {
       if (data[google.picker.Response.ACTION] === google.picker.Action.PICKED) {
-        const doc = data[google.picker.Response.DOCUMENTS][0];
-        const isFolder = doc.mimeType === 'application/vnd.google-apps.folder';
-        options.onSelected({
-          id: doc.id,
-          name: doc.name,
-          isFolder,
-          mimeType: doc.mimeType,
-        });
+        const docs: any[] = data[google.picker.Response.DOCUMENTS] || [];
+        options.onSelected(
+          docs.map((doc) => ({
+            id: doc.id,
+            name: doc.name,
+            mimeType: doc.mimeType,
+            modifiedTime: doc.lastEditedUtc ? new Date(doc.lastEditedUtc).toISOString() : undefined,
+          }))
+        );
       }
     });
+
+  if (mode === 'folder') {
+    builder.addView(
+      new google.picker.DocsView(google.picker.ViewId.FOLDERS).setIncludeFolders(true).setSelectFolderEnabled(true)
+    );
+  } else {
+    // Folders are browsable, but only the files ticked inside them are handed to the app
+    builder
+      .addView(new google.picker.DocsView().setIncludeFolders(true).setSelectFolderEnabled(false))
+      .enableFeature(google.picker.Feature.MULTISELECT_ENABLED);
+  }
 
   if (options.apiKey) {
     builder.setDeveloperKey(options.apiKey);
   }
 
-  const picker = builder.build();
-  picker.setVisible(true);
+  builder.build().setVisible(true);
 }
 
 // Request OAuth Access Token
-export const DRIVE_READ_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
-// drive.file only reaches files the app created or the user picked, so publishing never sees the rest of the Drive
+// drive.file only reaches files the app created or the user picked, so the app never sees the rest of the Drive
 export const DRIVE_FILE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 
 export async function requestDriveAccessToken(
   clientId: string,
-  scope: string = DRIVE_READ_SCOPE
+  scope: string = DRIVE_FILE_SCOPE
 ): Promise<string> {
   await loadGoogleScript();
 
@@ -667,12 +676,14 @@ export async function syncGoogleDriveFolder(params: {
   accessToken?: string;
   apiKey?: string;
   folderName?: string;
+  // Explicit files to sync (picked via the Picker) instead of listing a folder
+  files?: DriveFileItem[];
   onProgress?: (current: number, total: number, fileName: string) => void;
 }): Promise<{ added: number; updated: number; skipped: number; total: number }> {
-  const { folderId, resourceKey, accessToken, apiKey, folderName = 'Google Drive', onProgress } = params;
+  const { folderId, resourceKey, accessToken, apiKey, folderName = 'Google Drive', files, onProgress } = params;
 
   // 1. Scan all files in remote folder (includes .cho, .crd, .txt, and Google Docs)
-  const remoteFiles = await fetchDriveFolderFiles(folderId, accessToken, apiKey, resourceKey);
+  const remoteFiles = files ?? (await fetchDriveFolderFiles(folderId, accessToken, apiKey, resourceKey));
   const total = remoteFiles.length;
 
   let added = 0;
@@ -681,14 +692,16 @@ export async function syncGoogleDriveFolder(params: {
 
   // A published library (songs + setlists) in the folder is pulled first; chord files are still
   // synced below so folders that hold plain .cho files keep working.
-  try {
-    const lib = await pullLibraryFromFolder(folderId, accessToken, apiKey, resourceKey);
-    if (lib && !lib.skipped) {
-      added += lib.added;
-      updated += lib.updated;
+  if (!files) {
+    try {
+      const lib = await pullLibraryFromFolder(folderId, accessToken, apiKey, resourceKey);
+      if (lib && !lib.skipped) {
+        added += lib.added;
+        updated += lib.updated;
+      }
+    } catch (err) {
+      console.error('Failed to pull published library:', err);
     }
-  } catch (err) {
-    console.error('Failed to pull published library:', err);
   }
 
   // 2. Fetch all existing local songs to check for duplicates / updates
