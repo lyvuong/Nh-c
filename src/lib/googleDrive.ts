@@ -1,4 +1,4 @@
-import { db, type DBSong } from './db';
+import { db, newUuid, type DBSong, type DBSetlist } from './db';
 import { parseChordPro } from './chordParser';
 
 export interface GoogleDriveConfig {
@@ -9,6 +9,9 @@ export interface GoogleDriveConfig {
   folderUrl?: string;
   resourceKey?: string;
   lastSyncTime?: number;
+  publishFolderId?: string;
+  publishFolderName?: string;
+  lastPublishTime?: number;
   syncMode?: 'oauth' | 'public' | 'local';
   autoSyncOnLoad?: boolean;
 }
@@ -224,7 +227,14 @@ export async function showDrivePicker(options: {
 }
 
 // Request OAuth Access Token
-export async function requestDriveAccessToken(clientId: string): Promise<string> {
+export const DRIVE_READ_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
+// drive.file only reaches files the app created or the user picked, so publishing never sees the rest of the Drive
+export const DRIVE_FILE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+
+export async function requestDriveAccessToken(
+  clientId: string,
+  scope: string = DRIVE_READ_SCOPE
+): Promise<string> {
   await loadGoogleScript();
 
   return new Promise((resolve, reject) => {
@@ -236,7 +246,7 @@ export async function requestDriveAccessToken(clientId: string): Promise<string>
 
     const tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: clientId,
-      scope: 'https://www.googleapis.com/auth/drive.readonly',
+      scope,
       callback: (tokenResponse: any) => {
         if (tokenResponse.error) {
           reject(new Error(tokenResponse.error_description || tokenResponse.error));
@@ -382,6 +392,274 @@ export async function fetchDriveFolderName(
   return 'Google Drive Folder';
 }
 
+// ---------------------------------------------------------------------------
+// Library publish / pull: one stagechord-library.json holding all songs + setlists.
+// One device publishes (e.g. a laptop); other devices (e.g. a tablet) only pull.
+// ---------------------------------------------------------------------------
+
+export const LIBRARY_FILE_NAME = 'stagechord-library.json';
+const LIBRARY_STATE_KEY = 'libraryState';
+
+export interface LibrarySong extends Omit<DBSong, 'id' | 'uuid' | 'driveModifiedTime' | 'isFavorite'> {
+  uuid: string;
+}
+
+export interface LibrarySetlist extends Omit<DBSetlist, 'id' | 'uuid' | 'songs'> {
+  uuid: string;
+  songs: { songUuid: string; customKey?: string; customCapo?: number; notes?: string }[];
+}
+
+export interface DriveLibrary {
+  format: 'stagechord-library';
+  version: 1;
+  publishedAt: number;
+  songs: LibrarySong[];
+  setlists: LibrarySetlist[];
+}
+
+// What this device last took from a published library, so the next pull can tell what the
+// publisher removed (only those items are pruned; locally created ones are left alone).
+interface LibraryState {
+  publishedAt: number;
+  songUuids: string[];
+  setlistUuids: string[];
+}
+
+async function ensureUuids(): Promise<void> {
+  await db.songs.filter((s) => !s.uuid).modify((s) => {
+    s.uuid = newUuid();
+  });
+  await db.setlists.filter((s) => !s.uuid).modify((s) => {
+    s.uuid = newUuid();
+  });
+}
+
+export async function buildLibrary(): Promise<DriveLibrary> {
+  await ensureUuids();
+  const [songs, setlists] = await Promise.all([db.songs.toArray(), db.setlists.toArray()]);
+  const uuidById = new Map<number, string>();
+  for (const s of songs) uuidById.set(s.id!, s.uuid!);
+
+  return {
+    format: 'stagechord-library',
+    version: 1,
+    publishedAt: Date.now(),
+    songs: songs.map(({ id: _id, driveModifiedTime: _d, isFavorite: _f, uuid, ...rest }) => ({
+      ...rest,
+      uuid: uuid!,
+    })),
+    setlists: setlists.map(({ id: _id, uuid, songs: entries, ...rest }) => ({
+      ...rest,
+      uuid: uuid!,
+      songs: entries
+        .filter((e) => uuidById.has(e.songId))
+        .map(({ songId, ...opts }) => ({ songUuid: uuidById.get(songId)!, ...opts })),
+    })),
+  };
+}
+
+function isLibrary(data: any): data is DriveLibrary {
+  return (
+    data &&
+    data.format === 'stagechord-library' &&
+    data.version === 1 &&
+    Array.isArray(data.songs) &&
+    Array.isArray(data.setlists)
+  );
+}
+
+function authHeaders(accessToken?: string, fileOrFolderId?: string, resourceKey?: string) {
+  const headers: Record<string, string> = {};
+  if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+  if (resourceKey && fileOrFolderId) {
+    headers['X-Goog-Drive-Resource-Keys'] = `${fileOrFolderId}/${resourceKey}`;
+  }
+  return headers;
+}
+
+// Find the published library file inside a folder (non-recursive). Returns null if none.
+export async function findLibraryFile(
+  folderId: string,
+  accessToken?: string,
+  apiKey?: string,
+  resourceKey?: string
+): Promise<{ id: string; modifiedTime?: string } | null> {
+  const q = encodeURIComponent(
+    `'${folderId}' in parents and name = '${LIBRARY_FILE_NAME}' and trashed = false`
+  );
+  let url = `https://www.googleapis.com/drive/v3/files?q=${q}&supportsAllDrives=true&includeItemsFromAllDrives=true&orderBy=modifiedTime desc&fields=files(id,modifiedTime)&pageSize=1`;
+  if (apiKey) url += `&key=${encodeURIComponent(apiKey)}`;
+
+  const res = await fetch(url, { headers: authHeaders(accessToken, folderId, resourceKey) });
+  if (!res.ok) {
+    throw new Error(`Failed to look for ${LIBRARY_FILE_NAME} (${res.status}): ${await res.text()}`);
+  }
+  const data = await res.json();
+  return data.files?.[0] ?? null;
+}
+
+// Create or overwrite the library file in a folder the user picked with the drive.file scope.
+export async function publishLibraryToDrive(params: {
+  folderId: string;
+  accessToken: string;
+}): Promise<{ songs: number; setlists: number; publishedAt: number }> {
+  const { folderId, accessToken } = params;
+  const library = await buildLibrary();
+  const existing = await findLibraryFile(folderId, accessToken);
+
+  const boundary = `stagechord-${newUuid()}`;
+  const metadata: Record<string, unknown> = { name: LIBRARY_FILE_NAME, mimeType: 'application/json' };
+  if (!existing) metadata.parents = [folderId];
+
+  const body =
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(library)}\r\n` +
+    `--${boundary}--`;
+
+  const url = existing
+    ? `https://www.googleapis.com/upload/drive/v3/files/${existing.id}?uploadType=multipart&supportsAllDrives=true`
+    : `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true`;
+
+  const res = await fetch(url, {
+    method: existing ? 'PATCH' : 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': `multipart/related; boundary=${boundary}`,
+    },
+    body,
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to publish library (${res.status}): ${await res.text()}`);
+  }
+
+  return { songs: library.songs.length, setlists: library.setlists.length, publishedAt: library.publishedAt };
+}
+
+// Merge a published library into the local database. The publisher's copy wins for anything
+// that came from it; songs and setlists created locally on this device are never touched.
+export async function importLibrary(library: DriveLibrary): Promise<{
+  added: number;
+  updated: number;
+  removed: number;
+  skipped: boolean;
+}> {
+  const stateRow = await db.settings.get(LIBRARY_STATE_KEY);
+  const prev: LibraryState | undefined = stateRow?.value;
+  if (prev && prev.publishedAt === library.publishedAt) {
+    return { added: 0, updated: 0, removed: 0, skipped: true };
+  }
+
+  let added = 0;
+  let updated = 0;
+  let removed = 0;
+
+  await db.transaction('rw', db.songs, db.setlists, db.settings, async () => {
+    await ensureUuids();
+    const localSongs = await db.songs.toArray();
+    const byUuid = new Map<string, DBSong>();
+    for (const s of localSongs) byUuid.set(s.uuid!, s);
+
+    // Songs already on this device from a folder sync have no shared uuid yet; adopt them by
+    // title + artist instead of duplicating.
+    const identity = (t: string, a?: string) => `${t.trim().toLowerCase()}|${(a || '').trim().toLowerCase()}`;
+    const libUuids = new Set(library.songs.map((s) => s.uuid));
+    const unclaimed = new Map<string, DBSong>();
+    for (const s of localSongs) {
+      if (!libUuids.has(s.uuid!) && !prev?.songUuids.includes(s.uuid!)) {
+        unclaimed.set(identity(s.title, s.artist), s);
+      }
+    }
+
+    const idByUuid = new Map<string, number>();
+    for (const ls of library.songs) {
+      const { uuid, ...fields } = ls;
+      let local = byUuid.get(uuid);
+      if (!local) {
+        const match = unclaimed.get(identity(ls.title, ls.artist));
+        if (match) {
+          unclaimed.delete(identity(ls.title, ls.artist));
+          local = match;
+        }
+      }
+      if (local?.id != null) {
+        if (local.uuid !== uuid || local.updatedAt !== ls.updatedAt) {
+          await db.songs.update(local.id, { ...fields, uuid });
+          updated++;
+        }
+        idByUuid.set(uuid, local.id);
+      } else {
+        const id = await db.songs.add({ ...fields, uuid, isFavorite: false } as DBSong);
+        idByUuid.set(uuid, id);
+        added++;
+      }
+    }
+
+    const localSetlists = await db.setlists.toArray();
+    const setlistByUuid = new Map<string, DBSetlist>();
+    for (const s of localSetlists) setlistByUuid.set(s.uuid!, s);
+
+    for (const sl of library.setlists) {
+      const { uuid, songs: entries, ...fields } = sl;
+      const songs = entries
+        .filter((e) => idByUuid.has(e.songUuid))
+        .map(({ songUuid, ...opts }) => ({ songId: idByUuid.get(songUuid)!, ...opts }));
+      const local = setlistByUuid.get(uuid);
+      if (local?.id != null) {
+        await db.setlists.update(local.id, { ...fields, uuid, songs });
+        updated++;
+      } else {
+        await db.setlists.add({ ...fields, uuid, songs } as DBSetlist);
+        added++;
+      }
+    }
+
+    // Prune only what the publisher used to have and has now removed
+    const libSetlistUuids = new Set(library.setlists.map((s) => s.uuid));
+    const goneSongs = (prev?.songUuids ?? []).filter((u) => !libUuids.has(u));
+    const goneSetlists = (prev?.setlistUuids ?? []).filter((u) => !libSetlistUuids.has(u));
+    for (const u of goneSongs) {
+      removed += await db.songs.where('uuid').equals(u).delete();
+    }
+    for (const u of goneSetlists) {
+      removed += await db.setlists.where('uuid').equals(u).delete();
+    }
+    // Setlists may still point at pruned songs
+    if (goneSongs.length) {
+      const existingIds = new Set((await db.songs.toCollection().primaryKeys()) as number[]);
+      for (const sl of await db.setlists.toArray()) {
+        const kept = sl.songs.filter((e) => existingIds.has(e.songId));
+        if (kept.length !== sl.songs.length) await db.setlists.update(sl.id!, { songs: kept });
+      }
+    }
+
+    const state: LibraryState = {
+      publishedAt: library.publishedAt,
+      songUuids: library.songs.map((s) => s.uuid),
+      setlistUuids: library.setlists.map((s) => s.uuid),
+    };
+    await db.settings.put({ key: LIBRARY_STATE_KEY, value: state });
+  });
+
+  return { added, updated, removed, skipped: false };
+}
+
+// Pull the published library from a folder, if it holds one. Returns null when there is none.
+export async function pullLibraryFromFolder(
+  folderId: string,
+  accessToken?: string,
+  apiKey?: string,
+  resourceKey?: string
+): Promise<Awaited<ReturnType<typeof importLibrary>> | null> {
+  const file = await findLibraryFile(folderId, accessToken, apiKey, resourceKey);
+  if (!file) return null;
+  const raw = await fetchDriveFileContent(file.id, accessToken, apiKey, 'application/json', resourceKey);
+  const data = JSON.parse(raw);
+  if (!isLibrary(data)) {
+    throw new Error(`${LIBRARY_FILE_NAME} is not a valid StageChord library (unsupported format or version).`);
+  }
+  return importLibrary(data);
+}
+
 // Core Sync Engine: Synchronizes Drive folder files into local IndexedDB
 export async function syncGoogleDriveFolder(params: {
   folderId: string;
@@ -400,6 +678,18 @@ export async function syncGoogleDriveFolder(params: {
   let added = 0;
   let updated = 0;
   let skipped = 0;
+
+  // A published library (songs + setlists) in the folder is pulled first; chord files are still
+  // synced below so folders that hold plain .cho files keep working.
+  try {
+    const lib = await pullLibraryFromFolder(folderId, accessToken, apiKey, resourceKey);
+    if (lib && !lib.skipped) {
+      added += lib.added;
+      updated += lib.updated;
+    }
+  } catch (err) {
+    console.error('Failed to pull published library:', err);
+  }
 
   // 2. Fetch all existing local songs to check for duplicates / updates
   const existingSongs = await db.songs.toArray();

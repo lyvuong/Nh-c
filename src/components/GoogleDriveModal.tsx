@@ -29,6 +29,10 @@ import {
   fetchDriveFolderFiles,
   fetchDriveFileContent,
   showDrivePicker,
+  pullLibraryFromFolder,
+  publishLibraryToDrive,
+  DRIVE_FILE_SCOPE,
+  LIBRARY_FILE_NAME,
   type GoogleDriveConfig,
   type DriveFileItem
 } from '../lib/googleDrive';
@@ -73,6 +77,10 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
   const [syncResult, setSyncResult] = useState<{ added: number; updated: number; skipped: number; total: number } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Library publish / pull state
+  const [isLibraryBusy, setIsLibraryBusy] = useState(false);
+  const [libraryMessage, setLibraryMessage] = useState<string | null>(null);
+
   useEffect(() => {
     if (isOpen) {
       const current = loadDriveConfig();
@@ -85,10 +93,111 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
       if (current.syncMode) setActiveTab(current.syncMode);
       setErrorMessage(null);
       setSyncResult(null);
+      setLibraryMessage(null);
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  // Pull the published library (songs + setlists) from the folder in the input box
+  const handlePullLibrary = async () => {
+    setErrorMessage(null);
+    setLibraryMessage(null);
+
+    const info = extractFolderInfo(folderInput);
+    if (!info?.folderId) {
+      setErrorMessage('Please enter a valid Google Drive folder URL or Folder ID first');
+      return;
+    }
+
+    try {
+      setIsLibraryBusy(true);
+      let token = cachedToken || undefined;
+      if (activeTab === 'oauth' && !token) {
+        const clientId = clientIdInput.trim();
+        if (!clientId) {
+          setErrorMessage('Please provide your Google Cloud OAuth Client ID in the configuration below');
+          setShowAdvancedAuth(true);
+          return;
+        }
+        token = await requestDriveAccessToken(clientId);
+        setCachedToken(token);
+      }
+      const apiKey = activeTab === 'public' ? apiKeyInput.trim() : undefined;
+
+      const result = await pullLibraryFromFolder(info.folderId, token, apiKey, info.resourceKey);
+      if (!result) {
+        setErrorMessage(`No ${LIBRARY_FILE_NAME} was found in that folder. Publish one from the device you edit on first.`);
+      } else if (result.skipped) {
+        setLibraryMessage('Already up to date with the latest published library.');
+      } else {
+        setLibraryMessage(
+          `Library pulled: ${result.added} added, ${result.updated} updated, ${result.removed} removed.`
+        );
+        saveDriveConfig({ ...config, lastSyncTime: Date.now() });
+        onSyncCompleted?.();
+      }
+    } catch (err: any) {
+      console.error('Library pull failed:', err);
+      setErrorMessage(err.message || 'Failed to pull the library from Google Drive');
+    } finally {
+      setIsLibraryBusy(false);
+    }
+  };
+
+  // Publish every song + setlist on this device to a Drive folder the user picks
+  const handlePublishLibrary = async () => {
+    setErrorMessage(null);
+    setLibraryMessage(null);
+
+    const clientId = clientIdInput.trim();
+    if (!clientId) {
+      setErrorMessage('Publishing needs a Google Cloud OAuth Client ID — add it in the configuration below');
+      setShowAdvancedAuth(true);
+      return;
+    }
+
+    try {
+      setIsLibraryBusy(true);
+      // Publishing uses the narrower drive.file scope; the picked folder is what grants access to it
+      const token = await requestDriveAccessToken(clientId, DRIVE_FILE_SCOPE);
+
+      await showDrivePicker({
+        accessToken: token,
+        apiKey: apiKeyInput.trim() || undefined,
+        onSelected: async (item) => {
+          if (!item.isFolder) {
+            setErrorMessage('Please pick a folder to publish into, not a single file.');
+            setIsLibraryBusy(false);
+            return;
+          }
+          try {
+            const result = await publishLibraryToDrive({ folderId: item.id, accessToken: token });
+            const updatedConfig: GoogleDriveConfig = {
+              ...loadDriveConfig(),
+              publishFolderId: item.id,
+              publishFolderName: item.name,
+              lastPublishTime: result.publishedAt,
+            };
+            setConfig(updatedConfig);
+            saveDriveConfig(updatedConfig);
+            setLibraryMessage(
+              `Published ${result.songs} songs and ${result.setlists} setlists to "${item.name}". Share that folder ("Anyone with the link") so other devices can pull it.`
+            );
+          } catch (err: any) {
+            console.error('Library publish failed:', err);
+            setErrorMessage(err.message || 'Failed to publish the library to Google Drive');
+          } finally {
+            setIsLibraryBusy(false);
+          }
+        },
+      });
+    } catch (err: any) {
+      console.error('Library publish failed:', err);
+      setErrorMessage(err.message || 'Failed to publish the library to Google Drive');
+      setIsLibraryBusy(false);
+    }
+  };
 
   // Scan folder and populate interactive song file list
   const handleScanFolder = async () => {
@@ -441,6 +550,14 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
             </div>
           )}
 
+          {/* Library Message Banner */}
+          {libraryMessage && (
+            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-300 flex items-center gap-2.5">
+              <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+              <p className="font-bold text-[11px]">{libraryMessage}</p>
+            </div>
+          )}
+
           {/* Error Message */}
           {errorMessage && (
             <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-300 flex items-start gap-2.5">
@@ -604,6 +721,52 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
                   <span>Open Local Folder Picker</span>
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Songs + Setlists library: edit on a laptop, publish, pull on the tablet */}
+          {activeTab !== 'local' && (
+            <div className="p-3.5 rounded-xl bg-stage-bg border border-stage-border space-y-2.5">
+              <div className="flex items-center gap-2 text-stage-text font-bold text-xs">
+                <Cloud className="w-4 h-4 text-cyan-400" />
+                <span>Songs &amp; Setlists Library</span>
+              </div>
+              <p className="text-[11px] text-stage-muted leading-relaxed">
+                Edit on your laptop, <strong>publish</strong> to a Drive folder, then <strong>pull</strong> on your tablet or any other device using the folder link above.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handlePullLibrary}
+                  disabled={isLibraryBusy || isScanning || isSyncing}
+                  className="px-4 h-9 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer disabled:opacity-50"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Pull Library</span>
+                </button>
+                {activeTab === 'oauth' && (
+                  <button
+                    type="button"
+                    onClick={handlePublishLibrary}
+                    disabled={isLibraryBusy || isScanning || isSyncing}
+                    className="px-4 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer disabled:opacity-50"
+                  >
+                    <Cloud className="w-3.5 h-3.5" />
+                    <span>Publish Library</span>
+                  </button>
+                )}
+              </div>
+              {activeTab === 'oauth' && config.lastPublishTime && (
+                <p className="text-[10px] text-stage-muted font-mono">
+                  Last published {new Date(config.lastPublishTime).toLocaleString()}
+                  {config.publishFolderName ? ` to "${config.publishFolderName}"` : ''}
+                </p>
+              )}
+              {activeTab === 'public' && (
+                <p className="text-[10px] text-stage-muted">
+                  Publishing needs a Google account — switch to the OAuth tab on the device you edit on.
+                </p>
+              )}
             </div>
           )}
 
