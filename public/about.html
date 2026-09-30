@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Nhạc – ChordPro Reader & Stage Viewer</title>
+<meta name="description" content="Nhạc is a free, offline-first ChordPro reader, setlist manager and one-screen stage viewer for gigging musicians." />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<style>
+  :root { --bg:#0a0d14; --fg:#e6e9f0; --muted:#9aa3b5; --accent:#f59e0b; --card:#131826; --line:#232b3e; }
+  @media (prefers-color-scheme: light) { :root { --bg:#f7f8fb; --fg:#151a26; --muted:#5b6475; --accent:#b45309; --card:#fff; --line:#dde1ea; } }
+  * { box-sizing:border-box }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.65 Inter,system-ui,-apple-system,Segoe UI,sans-serif }
+  main { max-width:760px; margin:0 auto; padding:32px 16px 64px }
+  header { display:flex; align-items:center; gap:12px; margin-bottom:24px }
+  header img { width:40px; height:40px; border-radius:10px }
+  header a { color:var(--fg); font-weight:700; font-size:20px; text-decoration:none }
+  h1 { font-size:32px; line-height:1.2; margin:8px 0 4px }
+  h2 { font-size:20px; margin:32px 0 8px }
+  .sub, .muted { color:var(--muted) }
+  a { color:var(--accent) }
+  ul { padding-left:22px }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 20px; margin:16px 0 }
+  .btn { display:inline-block; background:var(--accent); color:#0a0d14; font-weight:700; padding:10px 18px; border-radius:10px; text-decoration:none }
+  footer { margin-top:48px; padding-top:16px; border-top:1px solid var(--line); color:var(--muted); font-size:14px }
+  footer a { margin-right:16px }
+</style>
+</head>
+<body>
+<main>
+<header><img src="/icon-192.png" alt="" /><a href="/about.html">Nhạc</a></header>
+
+<h1>Nhạc</h1>
+<p class="sub">Live band ChordPro reader &amp; stage viewer</p>
+<p>Nhạc (Vietnamese for “music”) is a free web app for gigging musicians, worship teams and band rehearsals. It replaces paper binders and PDF zooming with a fast chord-sheet reader that fits a whole song on one screen, with no mid-song scrolling or page turns.</p>
+<p><a class="btn" href="/">Open Nhạc</a></p>
+
+<h2>What it does</h2>
+<ul>
+<li>Read and edit songs in the ChordPro format, with lyrics and chords.</li>
+<li>Transpose to any key and set a capo in real time.</li>
+<li>Build and reorder setlists for a gig or rehearsal.</li>
+<li>Stage mode: an auto-fitting, one-screen layout for tablets and music stands.</li>
+<li>Works fully offline once installed as a PWA on iPad, Android or desktop.</li>
+<li>Your songs live on your own device (in the browser’s IndexedDB), not on our servers.</li>
+</ul>
+
+<h2>Optional Google Drive integration</h2>
+<div class="card">
+<p>If you choose to connect Google Drive, Nhạc uses Google sign-in to:</p>
+<ul>
+<li><strong>Import</strong> chord sheets from a Drive folder you select (read-only access, <code>drive.readonly</code>).</li>
+<li><strong>Publish and pull</strong> a single library file containing your songs and setlists in a folder you pick (<code>drive.file</code>, which only reaches files the app created or that you picked).</li>
+</ul>
+<p class="muted">This is entirely optional and only happens when you click it. Details are in the <a href="/privacy.html">Privacy Policy</a>.</p>
+</div>
+<footer>
+<a href="/about.html">Home</a><a href="/privacy.html">Privacy Policy</a><a href="/terms.html">Terms of Service</a><a href="/">Open the app</a>
+<p>Nhạc is an independent project. Contact: <a href="mailto:lyvuong@lv5.org">lyvuong@lv5.org</a></p>
+</footer>
+</main>
+</body>
+</html>
