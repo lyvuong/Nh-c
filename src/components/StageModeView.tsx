@@ -16,6 +16,7 @@ import type { ParsedSong } from '../lib/chordParser';
 import { ChordProViewer } from './ChordProViewer';
 import { requestWakeLock, releaseWakeLock } from '../lib/wakeLock';
 import { AutoScrollController } from './AutoScrollController';
+import { useSwipe } from '../utils/useSwipe';
 
 interface StageModeViewProps {
   currentSong: ParsedSong;
@@ -155,9 +156,12 @@ export const StageModeView: React.FC<StageModeViewProps> = ({
     if (scrollEl) scrollEl.scrollTop = 0;
   };
 
+  const swipeHandlers = useSwipe(onNextSong, onPrevSong);
+
   return (
     <div 
       ref={stageContainerRef}
+      {...swipeHandlers}
       className="stage-mode-view fixed inset-0 z-50 bg-stage-bg text-stage-text flex flex-col select-none overflow-hidden font-sans transition-colors duration-150"
     >
       {/* Top Stage Control Bar */}

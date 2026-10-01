@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { checkForUpdate } from './utils/updateCheck';
+import { useSwipe } from './utils/useSwipe';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type DBSong, type DBSetlist } from './lib/db';
 import { initDefaultData } from './lib/sampleSongs';
@@ -461,6 +462,12 @@ export function App() {
     }
   };
 
+  // Swipe left/right on the chart to move to the next/previous song in the setlist
+  const swipeHandlers = useSwipe(
+    () => nextSongId && setActiveSongId(nextSongId),
+    () => prevSongId && setActiveSongId(prevSongId)
+  );
+
   return (
     <div className="flex h-screen w-screen bg-stage-bg text-stage-text overflow-hidden select-none">
       {/* Fullscreen Stage Mode View */}
@@ -568,6 +575,7 @@ export function App() {
         {/* ChordPro Song Rendering Surface (1-Screen Auto-Fit) */}
         <div
           ref={viewerScrollContainerRef}
+          {...swipeHandlers}
           className="flex-1 overflow-hidden bg-stage-bg p-1 sm:p-2 flex flex-col"
         >
           {parsedTransposedSong ? (
