@@ -16,6 +16,8 @@ export interface GoogleDriveConfig {
   lastPublishTime?: number;
   syncMode?: 'oauth' | 'public' | 'local';
   autoSyncOnLoad?: boolean;
+  // Drive modifiedTime last seen per pulled file id, so unchanged files aren't downloaded again
+  pulledModifiedTimes?: Record<string, string>;
   pulledSetlistFileIds?: string[]; // setlist files pulled on this device, refreshed on app open
   // Files picked via the Drive Picker (OAuth mode); drive.file can only read what the user picked
   pickedFiles?: DriveFileItem[];
@@ -684,12 +686,34 @@ export async function pullLibraryFromFolder(
 ): Promise<Awaited<ReturnType<typeof importLibrary>> | null> {
   const file = await findLibraryFile(folderId, accessToken, apiKey, resourceKey);
   if (!file) return null;
+  if (file.modifiedTime && loadDriveConfig().pulledModifiedTimes?.[file.id] === file.modifiedTime) {
+    return { added: 0, updated: 0, removed: 0, skipped: true };
+  }
   const raw = await fetchDriveFileContent(file.id, accessToken, apiKey, 'application/json', resourceKey);
   const data = JSON.parse(raw);
   if (!isLibrary(data)) {
     throw new Error(`${LIBRARY_FILE_NAME} is not a valid StageChord library (unsupported format or version).`);
   }
-  return importLibrary(data);
+  const result = await importLibrary(data);
+  rememberModifiedTime(file.id, file.modifiedTime);
+  return result;
+}
+
+function rememberModifiedTime(fileId: string, modifiedTime?: string) {
+  if (!modifiedTime) return;
+  const config = loadDriveConfig();
+  saveDriveConfig({ ...config, pulledModifiedTimes: { ...config.pulledModifiedTimes, [fileId]: modifiedTime } });
+}
+
+async function fetchModifiedTime(fileId: string, accessToken?: string, apiKey?: string): Promise<string | undefined> {
+  let url = `https://www.googleapis.com/drive/v3/files/${fileId}?fields=modifiedTime&supportsAllDrives=true`;
+  if (apiKey) url += `&key=${encodeURIComponent(apiKey)}`;
+  try {
+    const res = await fetch(url, { headers: authHeaders(accessToken) });
+    return res.ok ? (await res.json()).modifiedTime : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -847,11 +871,17 @@ export async function importSetlistBundle(bundle: SetlistBundle): Promise<{ name
   return { name: bundle.setlist.name, added, updated };
 }
 
-export async function pullSetlistFile(fileId: string, accessToken?: string, apiKey?: string) {
+export async function pullSetlistFile(fileId: string, accessToken?: string, apiKey?: string, onlyIfChanged = false) {
+  // A cheap metadata check lets background/quick syncs skip downloading unchanged setlists
+  const modifiedTime = await fetchModifiedTime(fileId, accessToken, apiKey);
+  if (onlyIfChanged && modifiedTime && loadDriveConfig().pulledModifiedTimes?.[fileId] === modifiedTime) {
+    return { name: '', added: 0, updated: 0 };
+  }
   const raw = await fetchDriveFileContent(fileId, accessToken, apiKey, 'application/json');
   const data = JSON.parse(raw);
   if (!isSetlistBundle(data)) throw new Error('This file is not a valid StageChord setlist.');
   const result = await importSetlistBundle(data);
+  rememberModifiedTime(fileId, modifiedTime);
   // Remember it so the next app open can refresh this setlist without a sign-in
   const config = loadDriveConfig();
   const ids = config.pulledSetlistFileIds ?? [];
@@ -886,15 +916,17 @@ export async function autoPullOnOpen(): Promise<{ added: number; updated: number
     }
   }
 
-  for (const id of config.pulledSetlistFileIds ?? []) {
-    try {
-      add(await pullSetlistFile(id, undefined, apiKey));
-    } catch (e) {
-      console.warn('Auto-pull of setlist failed:', e);
-    }
+  const results = await Promise.allSettled(
+    (config.pulledSetlistFileIds ?? []).map((id) => pullSetlistFile(id, undefined, apiKey, true))
+  );
+  for (const r of results) {
+    if (r.status === 'fulfilled') add(r.value);
+    else console.warn('Auto-pull of setlist failed:', r.reason);
   }
   return total;
 }
+
+const DOWNLOAD_CONCURRENCY = 6;
 
 // Core Sync Engine: Synchronizes Drive folder files into local IndexedDB
 export async function syncGoogleDriveFolder(params: {
@@ -942,16 +974,15 @@ export async function syncGoogleDriveFolder(params: {
   }
 
   // 3. Download and parse only files that are new or changed since the last sync
-  //    (Drive's modifiedTime lets us skip re-fetching content for unchanged files)
-  for (let i = 0; i < total; i++) {
-    const file = remoteFiles[i];
-    onProgress?.(i + 1, total, file.name);
-
+  //    (Drive's modifiedTime lets us skip re-fetching content for unchanged files).
+  //    Downloads run a few at a time; DB writes are cheap and happen as each one lands.
+  let done = 0;
+  const syncOne = async (file: DriveFileItem) => {
     const existing = existingMap.get(file.name);
 
     if (existing && existing.driveModifiedTime && file.modifiedTime && existing.driveModifiedTime === file.modifiedTime) {
       skipped++;
-      continue;
+      return;
     }
 
     try {
@@ -966,7 +997,6 @@ export async function syncGoogleDriveFolder(params: {
       const time = parsed.metadata.time || '4/4';
 
       if (existing && existing.id) {
-        // Update existing song
         await db.songs.update(existing.id, {
           title,
           artist,
@@ -983,7 +1013,6 @@ export async function syncGoogleDriveFolder(params: {
         });
         updated++;
       } else {
-        // Add new song
         const newSong: Omit<DBSong, 'id'> = {
           title,
           artist,
@@ -1006,7 +1035,17 @@ export async function syncGoogleDriveFolder(params: {
     } catch (err) {
       console.error(`Failed to sync file ${file.name}:`, err);
     }
-  }
+  };
+
+  let next = 0;
+  const worker = async () => {
+    while (next < total) {
+      const file = remoteFiles[next++];
+      await syncOne(file);
+      onProgress?.(++done, total, file.name);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(DOWNLOAD_CONCURRENCY, total) }, worker));
 
   return { added, updated, skipped, total };
 }
@@ -1044,13 +1083,16 @@ export async function quickSyncFromSavedConfig(
 
   // Also refresh every setlist that was pulled before (songs + order), using the same credentials
   const apiKey = config.apiKey?.trim() || undefined;
-  for (const id of config.pulledSetlistFileIds ?? []) {
-    try {
-      const r = await pullSetlistFile(id, accessToken, accessToken ? undefined : apiKey);
-      result.added += r.added;
-      result.updated += r.updated;
-    } catch (err) {
-      console.warn('Sync of pulled setlist failed:', err);
+  const setlistIds = config.pulledSetlistFileIds ?? [];
+  const setlistResults = await Promise.allSettled(
+    setlistIds.map((id) => pullSetlistFile(id, accessToken, accessToken ? undefined : apiKey, true))
+  );
+  for (const r of setlistResults) {
+    if (r.status === 'fulfilled') {
+      result.added += r.value.added;
+      result.updated += r.value.updated;
+    } else {
+      console.warn('Sync of pulled setlist failed:', r.reason);
     }
   }
 

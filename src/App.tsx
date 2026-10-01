@@ -77,6 +77,7 @@ export function App() {
   const [quickSyncStatus, setQuickSyncStatus] = useState<{
     state: 'idle' | 'syncing' | 'success' | 'error';
     message?: string;
+    progress?: { current: number; total: number };
   }>({ state: 'idle' });
 
   // App Theme & Styling with persistence
@@ -315,7 +316,9 @@ export function App() {
     if (quickSyncStatus.state === 'syncing') return;
     setQuickSyncStatus({ state: 'syncing' });
     try {
-      const result = await quickSyncFromSavedConfig();
+      const result = await quickSyncFromSavedConfig((current, total) =>
+        setQuickSyncStatus({ state: 'syncing', progress: { current, total } })
+      );
       setDriveConfig(loadDriveConfig());
       setQuickSyncStatus({
         state: 'success',

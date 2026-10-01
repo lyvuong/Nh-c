@@ -29,7 +29,11 @@ interface HeaderProps {
   onOpenGoogleDrive: () => void;
   onToggleFavorite: () => void;
   driveConfig?: GoogleDriveConfig;
-  quickSyncStatus?: { state: 'idle' | 'syncing' | 'success' | 'error'; message?: string };
+  quickSyncStatus?: {
+    state: 'idle' | 'syncing' | 'success' | 'error';
+    message?: string;
+    progress?: { current: number; total: number };
+  };
   onQuickDriveSync?: () => void;
 }
 
@@ -206,7 +210,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onQuickDriveSync}
             disabled={isSyncing}
-            className="p-2 rounded-lg bg-stage-cardHover text-stage-muted hover:text-stage-text active:scale-95 transition border border-stage-border disabled:opacity-60"
+            className="p-2 rounded-lg bg-stage-cardHover text-stage-muted hover:text-stage-text active:scale-95 transition border border-stage-border disabled:opacity-60 flex items-center gap-1.5"
             title={
               quickSyncStatus?.state === 'error'
                 ? quickSyncStatus.message
@@ -226,6 +230,11 @@ export const Header: React.FC<HeaderProps> = ({
                   : 'text-stage-muted'
               } ${isSyncing ? 'animate-spin' : ''}`}
             />
+            {isSyncing && quickSyncStatus?.progress && quickSyncStatus.progress.total > 0 && (
+              <span className="text-xs tabular-nums text-stage-muted">
+                {quickSyncStatus.progress.current}/{quickSyncStatus.progress.total}
+              </span>
+            )}
           </button>
         )}
 
