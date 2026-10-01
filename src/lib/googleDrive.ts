@@ -1031,6 +1031,18 @@ export async function quickSyncFromSavedConfig(
     onProgress,
   });
 
-  saveDriveConfig({ ...config, lastSyncTime: Date.now() });
+  // Also refresh every setlist that was pulled before (songs + order), using the same credentials
+  const apiKey = config.apiKey?.trim() || undefined;
+  for (const id of config.pulledSetlistFileIds ?? []) {
+    try {
+      const r = await pullSetlistFile(id, accessToken, accessToken ? undefined : apiKey);
+      result.added += r.added;
+      result.updated += r.updated;
+    } catch (err) {
+      console.warn('Sync of pulled setlist failed:', err);
+    }
+  }
+
+  saveDriveConfig({ ...loadDriveConfig(), lastSyncTime: Date.now() });
   return result;
 }
