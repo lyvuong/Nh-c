@@ -589,7 +589,8 @@ export async function importLibrary(library: DriveLibrary): Promise<{
     const libUuids = new Set(library.songs.map((s) => s.uuid));
     const unclaimed = new Map<string, DBSong>();
     for (const s of localSongs) {
-      if (!libUuids.has(s.uuid!) && !prev?.songUuids.includes(s.uuid!)) {
+      // Setlist-specific copies (forkedFrom) are never adopted as library songs
+      if (!s.forkedFrom && !libUuids.has(s.uuid!) && !prev?.songUuids.includes(s.uuid!)) {
         unclaimed.set(identity(s.title, s.artist), s);
       }
     }
@@ -606,9 +607,13 @@ export async function importLibrary(library: DriveLibrary): Promise<{
         }
       }
       if (local?.id != null) {
-        if (local.uuid !== uuid || local.updatedAt !== ls.updatedAt) {
+        if (ls.updatedAt > local.updatedAt) {
+          // Published copy is newer: overwrite
           await db.songs.update(local.id, { ...fields, uuid });
           updated++;
+        } else if (local.uuid !== uuid) {
+          // Adopted by title + artist but the local copy is newer: keep its content, take the shared identity
+          await db.songs.update(local.id, { uuid });
         }
         idByUuid.set(uuid, local.id);
       } else {
@@ -812,7 +817,8 @@ export async function importSetlistBundle(bundle: SetlistBundle): Promise<{ name
       const data = { ...fields, uuid, forkedFrom: ls.forkedFrom ?? origUuid };
       const local = byUuid.get(uuid);
       if (local?.id != null) {
-        if (local.updatedAt !== ls.updatedAt || local.content !== ls.content) {
+        // Only overwrite when the published copy is newer than this device's copy
+        if (ls.updatedAt > local.updatedAt) {
           await db.songs.update(local.id, data);
           updated++;
         }
@@ -925,7 +931,8 @@ export async function syncGoogleDriveFolder(params: {
   const existingSongs = await db.songs.toArray();
   const existingMap = new Map<string, DBSong>();
   for (const s of existingSongs) {
-    if (s.fileName) {
+    // Skip setlist-specific copies so a folder sync never overwrites them with library files
+    if (s.fileName && !s.forkedFrom) {
       existingMap.set(s.fileName, s);
     }
   }
