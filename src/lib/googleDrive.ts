@@ -221,19 +221,18 @@ export async function showDrivePicker(options: {
     });
 
   if (mode === 'folder') {
+    const folderView = () =>
+      new google.picker.DocsView(google.picker.ViewId.DOCS)
+        .setIncludeFolders(true)
+        .setSelectFolderEnabled(true)
+        .setMimeTypes('application/vnd.google-apps.folder');
     builder
-      .addView(
-        new google.picker.DocsView(google.picker.ViewId.FOLDERS)
-          .setIncludeFolders(true)
-          .setSelectFolderEnabled(true)
-          .setEnableDrives(true)
-      )
-      .addView(
-        new google.picker.DocsView(google.picker.ViewId.FOLDERS)
-          .setIncludeFolders(true)
-          .setSelectFolderEnabled(true)
-          .setOwnedByMe(false)
-      )
+      // Folders other people shared with you
+      .addView(folderView().setOwnedByMe(false).setLabel('Shared with me'))
+      // Folders inside shared drives
+      .addView(folderView().setEnableDrives(true).setLabel('Shared drives'))
+      // Your own folders
+      .addView(folderView().setOwnedByMe(true).setLabel('My Drive'))
       .enableFeature(google.picker.Feature.SUPPORT_DRIVES);
   } else {
     // Folders are browsable, but only the files ticked inside them are handed to the app
