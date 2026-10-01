@@ -16,6 +16,7 @@ export interface GoogleDriveConfig {
   lastPublishTime?: number;
   syncMode?: 'oauth' | 'public' | 'local';
   autoSyncOnLoad?: boolean;
+  pulledSetlistFileIds?: string[]; // setlist files pulled on this device, refreshed on app open
   // Files picked via the Drive Picker (OAuth mode); drive.file can only read what the user picked
   pickedFiles?: DriveFileItem[];
 }
@@ -836,11 +837,53 @@ export async function importSetlistBundle(bundle: SetlistBundle): Promise<{ name
   return { name: bundle.setlist.name, added, updated };
 }
 
-export async function pullSetlistFile(fileId: string, accessToken: string) {
-  const raw = await fetchDriveFileContent(fileId, accessToken, undefined, 'application/json');
+export async function pullSetlistFile(fileId: string, accessToken?: string, apiKey?: string) {
+  const raw = await fetchDriveFileContent(fileId, accessToken, apiKey, 'application/json');
   const data = JSON.parse(raw);
   if (!isSetlistBundle(data)) throw new Error('This file is not a valid StageChord setlist.');
-  return importSetlistBundle(data);
+  const result = await importSetlistBundle(data);
+  // Remember it so the next app open can refresh this setlist without a sign-in
+  const config = loadDriveConfig();
+  const ids = config.pulledSetlistFileIds ?? [];
+  if (!ids.includes(fileId)) saveDriveConfig({ ...config, pulledSetlistFileIds: [...ids, fileId] });
+  return result;
+}
+
+// Silent refresh on app open: re-pull the published library and any setlists pulled before.
+// Only uses the saved API key (no sign-in popup), so folders/files must be shared "Anyone with
+// the link". Every failure is swallowed; the user can still pull manually.
+export async function autoPullOnOpen(): Promise<{ added: number; updated: number; removed: number }> {
+  const total = { added: 0, updated: 0, removed: 0 };
+  const config = loadDriveConfig();
+  const apiKey = config.apiKey?.trim();
+  if (!apiKey || config.syncMode === 'local' || !navigator.onLine) return total;
+
+  const add = (r: { added: number; updated: number; removed?: number }) => {
+    total.added += r.added;
+    total.updated += r.updated;
+    total.removed += r.removed ?? 0;
+  };
+
+  if (config.folderId) {
+    try {
+      const r = await pullLibraryFromFolder(config.folderId, undefined, apiKey, config.resourceKey);
+      if (r && !r.skipped) {
+        add(r);
+        saveDriveConfig({ ...loadDriveConfig(), lastSyncTime: Date.now() });
+      }
+    } catch (e) {
+      console.warn('Auto-pull of library failed:', e);
+    }
+  }
+
+  for (const id of config.pulledSetlistFileIds ?? []) {
+    try {
+      add(await pullSetlistFile(id, undefined, apiKey));
+    } catch (e) {
+      console.warn('Auto-pull of setlist failed:', e);
+    }
+  }
+  return total;
 }
 
 // Core Sync Engine: Synchronizes Drive folder files into local IndexedDB

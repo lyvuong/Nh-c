@@ -16,7 +16,7 @@ import { SongEditorModal } from './components/SongEditorModal';
 import { SettingsModal } from './components/SettingsModal';
 import { AboutModal } from './components/AboutModal';
 import { GoogleDriveModal } from './components/GoogleDriveModal';
-import { loadDriveConfig, quickSyncFromSavedConfig, type GoogleDriveConfig } from './lib/googleDrive';
+import { loadDriveConfig, quickSyncFromSavedConfig, autoPullOnOpen, type GoogleDriveConfig } from './lib/googleDrive';
 import { AutoScrollController } from './components/AutoScrollController';
 import { applyThemeToDOM } from './lib/themeManager';
 
@@ -93,6 +93,22 @@ export function App() {
   // Initialize Sample Data on first load
   useEffect(() => {
     initDefaultData(db);
+  }, []);
+
+  // Silently refresh published library/setlists from Drive when the app opens
+  const autoPullStarted = useRef(false);
+  useEffect(() => {
+    if (autoPullStarted.current) return;
+    autoPullStarted.current = true;
+    autoPullOnOpen().then((r) => {
+      if (!r.added && !r.updated && !r.removed) return;
+      setDriveConfig(loadDriveConfig());
+      setQuickSyncStatus({
+        state: 'success',
+        message: `Updated from Drive (${r.added} new, ${r.updated} updated${r.removed ? `, ${r.removed} removed` : ''})`,
+      });
+      setTimeout(() => setQuickSyncStatus({ state: 'idle' }), 4000);
+    });
   }, []);
 
   // Select first song automatically when songs load
