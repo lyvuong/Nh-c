@@ -118,6 +118,17 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
     }
   }, [isOpen]);
 
+  // Keep the pasted Client ID / API key on this device (localStorage) as soon as they change
+  useEffect(() => {
+    if (!isOpen) return;
+    const current = loadDriveConfig();
+    const clientId = clientIdInput.trim();
+    const apiKey = apiKeyInput.trim();
+    if (clientId !== (current.clientId || '') || apiKey !== (current.apiKey || '')) {
+      saveDriveConfig({ ...current, clientId, apiKey });
+    }
+  }, [isOpen, clientIdInput, apiKeyInput]);
+
   if (!isOpen) return null;
 
   const getShareToken = async (): Promise<string | null> => {
