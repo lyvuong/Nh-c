@@ -634,8 +634,11 @@ export async function importLibrary(library: DriveLibrary): Promise<{
         .map(({ songUuid, ...opts }) => ({ songId: idByUuid.get(songUuid)!, ...opts }));
       const local = setlistByUuid.get(uuid);
       if (local?.id != null) {
-        await db.setlists.update(local.id, { ...fields, uuid, songs });
-        updated++;
+        // Only overwrite when the published setlist is newer than this device's copy
+        if (sl.updatedAt > local.updatedAt) {
+          await db.setlists.update(local.id, { ...fields, uuid, songs });
+          updated++;
+        }
       } else {
         await db.setlists.add({ ...fields, uuid, songs } as DBSetlist);
         added++;
@@ -835,7 +838,8 @@ export async function importSetlistBundle(bundle: SetlistBundle): Promise<{ name
       .map(({ songUuid, ...opts }) => ({ songId: idByOrigUuid.get(songUuid)!, ...opts }));
     const local = await db.setlists.where('uuid').equals(uuid).first();
     if (local?.id != null) {
-      await db.setlists.update(local.id, { ...fields, songs });
+      // Only overwrite when the pulled setlist is newer than this device's copy
+      if (fields.updatedAt > local.updatedAt) await db.setlists.update(local.id, { ...fields, songs });
     } else {
       await db.setlists.add({ ...fields, uuid, songs } as DBSetlist);
     }
