@@ -927,18 +927,18 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
                 <select
                   value={shareSetlistId ?? ''}
                   onChange={(e) => setShareSetlistId(e.target.value ? Number(e.target.value) : null)}
-                  className="h-9 px-2 rounded-xl bg-stage-surface border border-stage-border text-xs text-stage-text"
+                  className="h-9 px-2 rounded-xl bg-stage-card border border-stage-border text-xs text-stage-text"
                 >
-                  <option value="">Select setlist…</option>
+                  <option value="" className="bg-stage-card text-stage-text">Select setlist…</option>
                   {setlistChoices.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
+                    <option key={s.id} value={s.id} className="bg-stage-card text-stage-text">{s.name}</option>
                   ))}
                 </select>
                 <button
                   type="button"
                   onClick={handleChooseShareFolder}
                   disabled={isLibraryBusy}
-                  className="px-3 h-9 rounded-xl bg-stage-surface border border-stage-border text-stage-text font-bold text-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  className="px-3 h-9 rounded-xl bg-stage-card border border-stage-border text-stage-text font-bold text-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   <FolderOpen className="w-3.5 h-3.5" />
                   <span>{shareFolder ? shareFolder.name : 'Choose shared folder'}</span>
@@ -983,7 +983,7 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
                           setIsLibraryBusy(false);
                         }
                       }}
-                      className="block w-full text-left px-3 py-2 rounded-lg bg-stage-surface border border-stage-border text-xs text-stage-text cursor-pointer"
+                      className="block w-full text-left px-3 py-2 rounded-lg bg-stage-card border border-stage-border text-xs text-stage-text cursor-pointer"
                     >
                       {f.name.replace(SETLIST_FILE_SUFFIX, '')}
                     </button>

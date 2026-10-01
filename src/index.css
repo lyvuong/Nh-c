@@ -97,3 +97,14 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgb(var(--color-stage-accent));
 }
+
+/* Native dropdown popups ignore parent styling; make them follow the theme */
+select {
+  background-color: rgb(var(--color-stage-card));
+  color: rgb(var(--color-stage-text));
+}
+select option,
+select optgroup {
+  background-color: rgb(var(--color-stage-card));
+  color: rgb(var(--color-stage-text));
+}
