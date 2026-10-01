@@ -17,6 +17,7 @@ import { checkForUpdate, installLatestVersion } from '../utils/updateCheck';
 
 interface SettingsModalProps {
   isOpen: boolean;
+  updateAvailable?: boolean;
   onClose: () => void;
   stageTheme: string;
   onSelectTheme: (theme: string) => void;
@@ -32,6 +33,7 @@ interface SettingsModalProps {
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
+  updateAvailable,
   onClose,
   stageTheme,
   onSelectTheme,
@@ -51,10 +53,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   // Reset the update banner each time the modal is reopened rather than persisting a stale check
   useEffect(() => {
     if (isOpen) {
-      setUpdateState('idle');
+      setUpdateState(updateAvailable ? 'available' : 'idle');
       setLatestVersion(undefined);
     }
-  }, [isOpen]);
+  }, [isOpen, updateAvailable]);
 
   const handleCheckForUpdate = async () => {
     setUpdateState('checking');
@@ -77,9 +79,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-stage-card border border-stage-border rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col transition-colors duration-150">
+      <div className="bg-stage-card border border-stage-border rounded-2xl w-full max-w-lg max-h-[calc(100dvh-2rem)] shadow-2xl overflow-hidden flex flex-col transition-colors duration-150">
         {/* Modal Header */}
-        <div className="p-4 border-b border-stage-border flex items-center justify-between">
+        <div className="p-4 shrink-0 border-b border-stage-border flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-lg bg-stage-cardHover text-stage-accent">
               <SettingsIcon className="w-5 h-5" />
@@ -102,7 +104,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         {/* Modal Body */}
-        <div className="p-5 overflow-y-auto space-y-5 text-xs">
+        <div className="p-5 min-h-0 flex-1 overflow-y-auto space-y-5 text-xs">
           {/* Stage Theme Selection */}
           <div>
             <label className="font-mono font-bold text-stage-muted uppercase block mb-2">

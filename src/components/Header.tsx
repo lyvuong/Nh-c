@@ -25,6 +25,7 @@ interface HeaderProps {
   onToggleSidebarMobile: () => void;
   onEnterStageMode: () => void;
   onOpenSettings: () => void;
+  updateAvailable?: boolean;
   onOpenFolderImport: () => void;
   onOpenGoogleDrive: () => void;
   onToggleFavorite: () => void;
@@ -65,6 +66,7 @@ export const Header: React.FC<HeaderProps> = ({
   driveConfig,
   quickSyncStatus,
   onQuickDriveSync,
+  updateAvailable = false,
 }) => {
   const isDriveConfigured = !!driveConfig?.folderId && driveConfig.syncMode !== 'local';
   const isSyncing = quickSyncStatus?.state === 'syncing';
@@ -257,10 +259,13 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Settings button */}
         <button
           onClick={onOpenSettings}
-          className="p-2 rounded-lg bg-stage-cardHover text-stage-muted hover:text-stage-text active:scale-95 transition border border-stage-border"
-          title="Stage Display & Theme Settings"
+          className="relative p-2 rounded-lg bg-stage-cardHover text-stage-muted hover:text-stage-text active:scale-95 transition border border-stage-border"
+          title={updateAvailable ? 'Update available — open Settings to install' : 'Stage Display & Theme Settings'}
         >
           <Settings className="w-4 h-4" />
+          {updateAvailable && (
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-stage-accent border-2 border-stage-card" />
+          )}
         </button>
 
         {/* Stage Mode Fullscreen button */}

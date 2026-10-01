@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { checkForUpdate } from './utils/updateCheck';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type DBSong, type DBSetlist } from './lib/db';
 import { initDefaultData } from './lib/sampleSongs';
@@ -71,6 +72,15 @@ export function App() {
   const [isSongEditorOpen, setIsSongEditorOpen] = useState<boolean>(false);
   const [editingSong, setEditingSong] = useState<DBSong | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+  const [updateAvailable, setUpdateAvailable] = useState<boolean>(false);
+
+  // On open, if the network is available, check whether a newer build has been deployed
+  useEffect(() => {
+    if (!navigator.onLine) return;
+    checkForUpdate()
+      .then((r) => setUpdateAvailable(r.hasUpdate))
+      .catch(() => {});
+  }, []);
   const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
   const [isGoogleDriveOpen, setIsGoogleDriveOpen] = useState<boolean>(false);
   const [driveConfig, setDriveConfig] = useState<GoogleDriveConfig>(() => loadDriveConfig());
@@ -522,6 +532,7 @@ export function App() {
           onToggleSidebarMobile={handleOpenSidebar}
           onEnterStageMode={() => setIsStageMode(true)}
           onOpenSettings={() => setIsSettingsOpen(true)}
+          updateAvailable={updateAvailable}
           onOpenFolderImport={() => setIsFolderImportOpen(true)}
           onOpenGoogleDrive={() => setIsGoogleDriveOpen(true)}
           onToggleFavorite={() => handleToggleFavorite()}
@@ -648,6 +659,7 @@ export function App() {
 
       <SettingsModal
         isOpen={isSettingsOpen}
+        updateAvailable={updateAvailable}
         onClose={() => setIsSettingsOpen(false)}
         stageTheme={stageTheme}
         onSelectTheme={setStageTheme}
