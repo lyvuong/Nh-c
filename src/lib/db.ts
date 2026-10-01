@@ -18,6 +18,7 @@ export interface DBSong {
   createdAt: number;
   updatedAt: number;
   isFavorite?: boolean;
+  forkedFrom?: string; // uuid of the library song this setlist-specific copy was made from
 }
 
 export interface DBSetlistSong {

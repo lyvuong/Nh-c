@@ -11,6 +11,8 @@ export interface GoogleDriveConfig {
   lastSyncTime?: number;
   publishFolderId?: string;
   publishFolderName?: string;
+  shareFolderId?: string; // folder chosen for per-setlist publish/pull
+  shareFolderName?: string;
   lastPublishTime?: number;
   syncMode?: 'oauth' | 'public' | 'local';
   autoSyncOnLoad?: boolean;
@@ -219,14 +221,27 @@ export async function showDrivePicker(options: {
     });
 
   if (mode === 'folder') {
-    builder.addView(
-      new google.picker.DocsView(google.picker.ViewId.FOLDERS).setIncludeFolders(true).setSelectFolderEnabled(true)
-    );
+    builder
+      .addView(
+        new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+          .setIncludeFolders(true)
+          .setSelectFolderEnabled(true)
+          .setEnableDrives(true)
+      )
+      .addView(
+        new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+          .setIncludeFolders(true)
+          .setSelectFolderEnabled(true)
+          .setOwnedByMe(false)
+      )
+      .enableFeature(google.picker.Feature.SUPPORT_DRIVES);
   } else {
     // Folders are browsable, but only the files ticked inside them are handed to the app
     builder
-      .addView(new google.picker.DocsView().setIncludeFolders(true).setSelectFolderEnabled(false))
-      .enableFeature(google.picker.Feature.MULTISELECT_ENABLED);
+      .addView(new google.picker.DocsView().setIncludeFolders(true).setSelectFolderEnabled(false).setEnableDrives(true))
+      .addView(new google.picker.DocsView().setIncludeFolders(true).setSelectFolderEnabled(false).setOwnedByMe(false))
+      .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+      .enableFeature(google.picker.Feature.SUPPORT_DRIVES);
   }
 
   if (options.apiKey) {
@@ -667,6 +682,166 @@ export async function pullLibraryFromFolder(
     throw new Error(`${LIBRARY_FILE_NAME} is not a valid StageChord library (unsupported format or version).`);
   }
   return importLibrary(data);
+}
+
+// ---------------------------------------------------------------------------
+// Single-setlist publish / pull: one <name>.stagechord-setlist.json holding the setlist and
+// its songs. Pulling never touches library songs: every song arrives as a setlist-specific
+// copy (forkedFrom set), so re-pulling updates the same copies.
+// ---------------------------------------------------------------------------
+
+export const SETLIST_FILE_SUFFIX = '.stagechord-setlist.json';
+
+export interface SetlistBundle {
+  format: 'stagechord-setlist';
+  version: 1;
+  publishedAt: number;
+  setlist: LibrarySetlist;
+  songs: LibrarySong[];
+}
+
+function isSetlistBundle(data: any): data is SetlistBundle {
+  return (
+    data &&
+    data.format === 'stagechord-setlist' &&
+    data.version === 1 &&
+    data.setlist &&
+    Array.isArray(data.setlist.songs) &&
+    Array.isArray(data.songs)
+  );
+}
+
+function setlistFileName(name: string): string {
+  const safe = name.replace(/[\\/:*?"<>|']/g, '_').trim() || 'setlist';
+  return `${safe}${SETLIST_FILE_SUFFIX}`;
+}
+
+export async function buildSetlistBundle(setlistId: number): Promise<SetlistBundle> {
+  await ensureUuids();
+  const setlist = await db.setlists.get(setlistId);
+  if (!setlist) throw new Error('Setlist not found');
+  const songs = await db.songs.bulkGet(setlist.songs.map((e) => e.songId));
+  const uuidById = new Map<number, string>();
+  const libSongs: LibrarySong[] = [];
+  for (const s of songs) {
+    if (!s || uuidById.has(s.id!)) continue;
+    uuidById.set(s.id!, s.uuid!);
+    const { id: _id, driveModifiedTime: _d, isFavorite: _f, uuid, ...rest } = s;
+    libSongs.push({ ...rest, uuid: uuid! });
+  }
+  const { id: _sid, uuid, songs: entries, ...fields } = setlist;
+  return {
+    format: 'stagechord-setlist',
+    version: 1,
+    publishedAt: Date.now(),
+    setlist: {
+      ...fields,
+      uuid: uuid!,
+      songs: entries
+        .filter((e) => uuidById.has(e.songId))
+        .map(({ songId, ...opts }) => ({ songUuid: uuidById.get(songId)!, ...opts })),
+    },
+    songs: libSongs,
+  };
+}
+
+export async function publishSetlistToDrive(params: {
+  setlistId: number;
+  folderId: string;
+  accessToken: string;
+}): Promise<{ songs: number; name: string }> {
+  const { setlistId, folderId, accessToken } = params;
+  const bundle = await buildSetlistBundle(setlistId);
+  const fileName = setlistFileName(bundle.setlist.name);
+
+  const q = encodeURIComponent(`'${folderId}' in parents and name = '${fileName.replace(/'/g, "\\'")}' and trashed = false`);
+  const found = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=${q}&supportsAllDrives=true&includeItemsFromAllDrives=true&fields=files(id)&pageSize=1`,
+    { headers: authHeaders(accessToken) }
+  );
+  if (!found.ok) throw new Error(`Failed to look for ${fileName} (${found.status}): ${await found.text()}`);
+  const existing: { id: string } | undefined = (await found.json()).files?.[0];
+
+  const boundary = `stagechord-${newUuid()}`;
+  const metadata: Record<string, unknown> = { name: fileName, mimeType: 'application/json' };
+  if (!existing) metadata.parents = [folderId];
+  const body =
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(bundle)}\r\n` +
+    `--${boundary}--`;
+  const url = existing
+    ? `https://www.googleapis.com/upload/drive/v3/files/${existing.id}?uploadType=multipart&supportsAllDrives=true`
+    : `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true`;
+  const res = await fetch(url, {
+    method: existing ? 'PATCH' : 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': `multipart/related; boundary=${boundary}` },
+    body,
+  });
+  if (!res.ok) throw new Error(`Failed to publish setlist (${res.status}): ${await res.text()}`);
+  return { songs: bundle.songs.length, name: bundle.setlist.name };
+}
+
+// Setlist files in a folder. Under drive.file this may come back empty for files the app
+// did not create; callers then fall back to the Picker.
+export async function listSetlistFiles(folderId: string, accessToken: string): Promise<DriveFileItem[]> {
+  const q = encodeURIComponent(
+    `'${folderId}' in parents and name contains '${SETLIST_FILE_SUFFIX}' and trashed = false`
+  );
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=${q}&supportsAllDrives=true&includeItemsFromAllDrives=true&fields=files(id,name,mimeType,modifiedTime)&pageSize=100`,
+    { headers: authHeaders(accessToken) }
+  );
+  if (!res.ok) throw new Error(`Failed to list setlists (${res.status}): ${await res.text()}`);
+  return ((await res.json()).files ?? []).filter((f: DriveFileItem) => f.name.endsWith(SETLIST_FILE_SUFFIX));
+}
+
+export async function importSetlistBundle(bundle: SetlistBundle): Promise<{ name: string; added: number; updated: number }> {
+  let added = 0;
+  let updated = 0;
+  await db.transaction('rw', db.songs, db.setlists, async () => {
+    await ensureUuids();
+    const byUuid = new Map<string, DBSong>();
+    for (const s of await db.songs.toArray()) byUuid.set(s.uuid!, s);
+
+    const setlistUuid = bundle.setlist.uuid;
+    const idByOrigUuid = new Map<string, number>();
+    for (const ls of bundle.songs) {
+      const { uuid: origUuid, ...fields } = ls;
+      // Already-forked songs keep their own identity; library songs become copies scoped to this setlist
+      const uuid = ls.forkedFrom ? origUuid : `${setlistUuid}:${origUuid}`;
+      const data = { ...fields, uuid, forkedFrom: ls.forkedFrom ?? origUuid };
+      const local = byUuid.get(uuid);
+      if (local?.id != null) {
+        if (local.updatedAt !== ls.updatedAt || local.content !== ls.content) {
+          await db.songs.update(local.id, data);
+          updated++;
+        }
+        idByOrigUuid.set(origUuid, local.id);
+      } else {
+        idByOrigUuid.set(origUuid, await db.songs.add({ ...data, isFavorite: false } as DBSong));
+        added++;
+      }
+    }
+
+    const { uuid, songs: entries, ...fields } = bundle.setlist;
+    const songs = entries
+      .filter((e) => idByOrigUuid.has(e.songUuid))
+      .map(({ songUuid, ...opts }) => ({ songId: idByOrigUuid.get(songUuid)!, ...opts }));
+    const local = await db.setlists.where('uuid').equals(uuid).first();
+    if (local?.id != null) {
+      await db.setlists.update(local.id, { ...fields, songs });
+    } else {
+      await db.setlists.add({ ...fields, uuid, songs } as DBSetlist);
+    }
+  });
+  return { name: bundle.setlist.name, added, updated };
+}
+
+export async function pullSetlistFile(fileId: string, accessToken: string) {
+  const raw = await fetchDriveFileContent(fileId, accessToken, undefined, 'application/json');
+  const data = JSON.parse(raw);
+  if (!isSetlistBundle(data)) throw new Error('This file is not a valid StageChord setlist.');
+  return importSetlistBundle(data);
 }
 
 // Core Sync Engine: Synchronizes Drive folder files into local IndexedDB

@@ -16,7 +16,6 @@ interface TransposeBarProps {
   currentKey?: string;
   originalKey?: string;
   semitones: number;
-  onTranspose: (delta: number) => void;
   onResetTranspose: () => void;
   onSelectKey: (targetKey: string) => void;
   zoomLevel: number;
@@ -35,7 +34,6 @@ export const TransposeBar: React.FC<TransposeBarProps> = ({
   currentKey = 'C',
   originalKey,
   semitones,
-  onTranspose,
   onResetTranspose,
   onSelectKey,
   zoomLevel,

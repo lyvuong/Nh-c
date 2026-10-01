@@ -356,7 +356,22 @@ export function App() {
   // Save Song (New or Edit)
   const handleSaveSong = async (songData: Omit<DBSong, 'id'>, id?: number) => {
     if (id) {
-      await db.songs.update(id, songData);
+      // Inside a setlist, edits go to a setlist-specific copy so the library original stays as it was
+      const entryIdx = activeSetlist ? activeSetlist.songs.findIndex((e) => e.songId === id) : -1;
+      const original = entryIdx >= 0 ? songs.find((s) => s.id === id) : undefined;
+      if (activeSetlist && original && !original.forkedFrom) {
+        const copyId = (await db.songs.add({
+          ...songData,
+          uuid: undefined,
+          forkedFrom: original.uuid,
+          isFavorite: original.isFavorite,
+        } as DBSong)) as number;
+        const entries = activeSetlist.songs.map((e, i) => (i === entryIdx ? { ...e, songId: copyId } : e));
+        await db.setlists.update(activeSetlist.id!, { songs: entries, updatedAt: Date.now() });
+        setActiveSongId(copyId);
+      } else {
+        await db.songs.update(id, songData);
+      }
     } else {
       const newId = await db.songs.add(songData as DBSong);
       setActiveSongId(newId as number);
@@ -502,7 +517,6 @@ export function App() {
             currentKey={parsedTransposedSong.metadata.key}
             originalKey={activeSong.key}
             semitones={semitones}
-            onTranspose={handleTranspose}
             onResetTranspose={handleResetTranspose}
             onSelectKey={handleSelectKey}
             zoomLevel={zoomLevel}
@@ -638,6 +652,7 @@ export function App() {
         onClose={() => setIsGoogleDriveOpen(false)}
         onOpenFolderImport={() => setIsFolderImportOpen(true)}
         onSyncCompleted={() => setDriveConfig(loadDriveConfig())}
+        activeSetlistId={activeSetlistId}
       />
 
       {/* Floating Auto-Scroll Speed Controller HUD */}

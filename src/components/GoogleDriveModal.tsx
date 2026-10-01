@@ -32,6 +32,10 @@ import {
   showDrivePicker,
   pullLibraryFromFolder,
   publishLibraryToDrive,
+  publishSetlistToDrive,
+  listSetlistFiles,
+  pullSetlistFile,
+  SETLIST_FILE_SUFFIX,
   DRIVE_FILE_SCOPE,
   LIBRARY_FILE_NAME,
   type GoogleDriveConfig,
@@ -45,6 +49,7 @@ interface GoogleDriveModalProps {
   onClose: () => void;
   onOpenFolderImport: () => void;
   onSyncCompleted?: () => void;
+  activeSetlistId?: number | null;
 }
 
 export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
@@ -52,6 +57,7 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
   onClose,
   onOpenFolderImport,
   onSyncCompleted,
+  activeSetlistId,
 }) => {
   const [config, setConfig] = useState<GoogleDriveConfig>(loadDriveConfig());
   const [activeTab, setActiveTab] = useState<'oauth' | 'public' | 'local'>(
@@ -82,9 +88,23 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
   const [isLibraryBusy, setIsLibraryBusy] = useState(false);
   const [libraryMessage, setLibraryMessage] = useState<string | null>(null);
 
+  // Single-setlist share state
+  const [setlistChoices, setSetlistChoices] = useState<{ id: number; name: string }[]>([]);
+  const [shareSetlistId, setShareSetlistId] = useState<number | null>(null);
+  const [shareFolder, setShareFolder] = useState<{ id: string; name: string } | null>(null);
+  const [remoteSetlists, setRemoteSetlists] = useState<DriveFileItem[]>([]);
+
   useEffect(() => {
     if (isOpen) {
       const current = loadDriveConfig();
+      db.setlists.toArray().then((all) => {
+        setSetlistChoices(all.map((s) => ({ id: s.id!, name: s.name })));
+        setShareSetlistId((prev) => prev ?? activeSetlistId ?? all[0]?.id ?? null);
+      });
+      if (current.shareFolderId) {
+        setShareFolder({ id: current.shareFolderId, name: current.shareFolderName || current.shareFolderId });
+      }
+      setRemoteSetlists([]);
       setConfig(current);
       if (current.folderUrl || current.folderId) {
         setFolderInput(current.folderUrl || current.folderId || '');
@@ -99,6 +119,113 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const getShareToken = async (): Promise<string | null> => {
+    if (cachedToken) return cachedToken;
+    const clientId = clientIdInput.trim();
+    if (!clientId) {
+      setErrorMessage('Sharing needs a Google Cloud OAuth Client ID — add it in the configuration below');
+      setShowAdvancedAuth(true);
+      return null;
+    }
+    const token = await requestDriveAccessToken(clientId, DRIVE_FILE_SCOPE);
+    setCachedToken(token);
+    return token;
+  };
+
+  const handleChooseShareFolder = async () => {
+    setErrorMessage(null);
+    try {
+      const token = await getShareToken();
+      if (!token) return;
+      await showDrivePicker({
+        accessToken: token,
+        apiKey: apiKeyInput.trim() || undefined,
+        mode: 'folder',
+        onSelected: ([item]) => {
+          if (!item || item.mimeType !== 'application/vnd.google-apps.folder') {
+            setErrorMessage('Please pick a folder, not a single file.');
+            return;
+          }
+          setShareFolder({ id: item.id, name: item.name });
+          setRemoteSetlists([]);
+          const updated = { ...loadDriveConfig(), shareFolderId: item.id, shareFolderName: item.name };
+          setConfig(updated);
+          saveDriveConfig(updated);
+        },
+      });
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Could not open the Google Drive picker');
+    }
+  };
+
+  const handlePublishSetlist = async () => {
+    setErrorMessage(null);
+    setLibraryMessage(null);
+    if (shareSetlistId == null || !shareFolder) return;
+    try {
+      setIsLibraryBusy(true);
+      const token = await getShareToken();
+      if (!token) return;
+      const r = await publishSetlistToDrive({ setlistId: shareSetlistId, folderId: shareFolder.id, accessToken: token });
+      setLibraryMessage(`Published "${r.name}" with ${r.songs} songs to "${shareFolder.name}".`);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to publish the setlist');
+    } finally {
+      setIsLibraryBusy(false);
+    }
+  };
+
+  const pullSetlistById = async (fileId: string, token: string) => {
+    const r = await pullSetlistFile(fileId, token);
+    setRemoteSetlists([]);
+    setLibraryMessage(`Pulled "${r.name}": ${r.added} songs added, ${r.updated} updated. Your library songs were not changed.`);
+    onSyncCompleted?.();
+  };
+
+  const handlePullSetlist = async () => {
+    setErrorMessage(null);
+    setLibraryMessage(null);
+    if (!shareFolder) return;
+    try {
+      setIsLibraryBusy(true);
+      const token = await getShareToken();
+      if (!token) return;
+      const files = await listSetlistFiles(shareFolder.id, token).catch(() => [] as DriveFileItem[]);
+      if (files.length === 0) {
+        // drive.file only exposes files the user picked, so let them pick the setlist file itself
+        await showDrivePicker({
+          accessToken: token,
+          apiKey: apiKeyInput.trim() || undefined,
+          mode: 'files',
+          onSelected: async (items) => {
+            try {
+              setIsLibraryBusy(true);
+              for (const it of items.filter((i) => i.name.endsWith(SETLIST_FILE_SUFFIX))) {
+                await pullSetlistById(it.id, token);
+              }
+            } catch (err: any) {
+              setErrorMessage(err.message || 'Failed to pull the setlist');
+            } finally {
+              setIsLibraryBusy(false);
+            }
+          },
+        });
+        return;
+      }
+      const wanted = setlistChoices.find((s) => s.id === shareSetlistId)?.name;
+      const match = files.find((f) => wanted && f.name === `${wanted.replace(/[\\/:*?"<>|']/g, '_').trim()}${SETLIST_FILE_SUFFIX}`);
+      if (match) {
+        await pullSetlistById(match.id, token);
+      } else {
+        setRemoteSetlists(files);
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to pull the setlist');
+    } finally {
+      setIsLibraryBusy(false);
+    }
+  };
 
   // Pull the published library (songs + setlists) from the folder in the input box
   const handlePullLibrary = async () => {
@@ -771,6 +898,86 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
                 <p className="text-[10px] text-stage-muted">
                   Publishing needs a Google account — switch to the OAuth tab on the device you edit on.
                 </p>
+              )}
+            </div>
+          )}
+
+          {/* Single setlist share: publish / pull one setlist with its songs via a chosen folder */}
+          {activeTab === 'oauth' && (
+            <div className="p-3.5 rounded-xl bg-stage-bg border border-stage-border space-y-2.5">
+              <div className="flex items-center gap-2 text-stage-text font-bold text-xs">
+                <Music className="w-4 h-4 text-cyan-400" />
+                <span>Share a Setlist</span>
+              </div>
+              <p className="text-[11px] text-stage-muted leading-relaxed">
+                Pick a setlist and a shared folder. Publish uploads the setlist with its songs (including your setlist edits); Pull saves them as separate copies and never changes your library songs.
+              </p>
+              <div className="flex flex-wrap gap-2 items-center">
+                <select
+                  value={shareSetlistId ?? ''}
+                  onChange={(e) => setShareSetlistId(e.target.value ? Number(e.target.value) : null)}
+                  className="h-9 px-2 rounded-xl bg-stage-surface border border-stage-border text-xs text-stage-text"
+                >
+                  <option value="">Select setlist…</option>
+                  {setlistChoices.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={handleChooseShareFolder}
+                  disabled={isLibraryBusy}
+                  className="px-3 h-9 rounded-xl bg-stage-surface border border-stage-border text-stage-text font-bold text-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <FolderOpen className="w-3.5 h-3.5" />
+                  <span>{shareFolder ? shareFolder.name : 'Choose shared folder'}</span>
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handlePublishSetlist}
+                  disabled={isLibraryBusy || shareSetlistId == null || !shareFolder}
+                  className="px-4 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer disabled:opacity-50"
+                >
+                  <Cloud className="w-3.5 h-3.5" />
+                  <span>Publish</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePullSetlist}
+                  disabled={isLibraryBusy || !shareFolder}
+                  className="px-4 h-9 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer disabled:opacity-50"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Pull</span>
+                </button>
+              </div>
+              {remoteSetlists.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-[11px] text-stage-muted">Setlists in this folder — tap one to pull:</p>
+                  {remoteSetlists.map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      disabled={isLibraryBusy}
+                      onClick={async () => {
+                        try {
+                          setIsLibraryBusy(true);
+                          const token = await getShareToken();
+                          if (token) await pullSetlistById(f.id, token);
+                        } catch (err: any) {
+                          setErrorMessage(err.message || 'Failed to pull the setlist');
+                        } finally {
+                          setIsLibraryBusy(false);
+                        }
+                      }}
+                      className="block w-full text-left px-3 py-2 rounded-lg bg-stage-surface border border-stage-border text-xs text-stage-text cursor-pointer"
+                    >
+                      {f.name.replace(SETLIST_FILE_SUFFIX, '')}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
           )}
