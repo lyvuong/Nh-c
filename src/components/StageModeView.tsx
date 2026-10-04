@@ -101,6 +101,31 @@ export const StageModeView: React.FC<StageModeViewProps> = ({
       document.querySelector('.stage-mode-view .chordpro-scroll-surface')) as HTMLElement | null;
   };
 
+  // Only offer auto-scroll when the song overflows the screen (e.g. 1 Col mode)
+  const [isScrollable, setIsScrollable] = useState(false);
+  useEffect(() => {
+    let ro: ResizeObserver | null = null;
+    const measure = () => {
+      const el = getStageScrollEl();
+      setIsScrollable(!!el && el.scrollHeight > el.clientHeight + 10);
+    };
+    const timer = setTimeout(() => {
+      measure();
+      const el = getStageScrollEl();
+      if (el && typeof ResizeObserver !== 'undefined') {
+        ro = new ResizeObserver(measure);
+        ro.observe(el);
+        if (el.firstElementChild) ro.observe(el.firstElementChild);
+      }
+    }, 100);
+    window.addEventListener('resize', measure);
+    return () => {
+      clearTimeout(timer);
+      ro?.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [currentSong, columnsPreference, zoomLevel]);
+
   // Smart Bluetooth Pedal & Keyboard Navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -165,8 +190,8 @@ export const StageModeView: React.FC<StageModeViewProps> = ({
       className="stage-mode-view fixed inset-0 z-50 bg-stage-bg text-stage-text flex flex-col select-none overflow-hidden font-sans transition-colors duration-150 pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)]"
     >
       {/* Top Stage Control Bar */}
-      <div className="flex-shrink-0 bg-stage-card border-b border-stage-border px-3 sm:px-4 py-2 pt-[calc(0.5rem+env(safe-area-inset-top))] flex items-center justify-between gap-2 shadow-md flex-wrap">
-        
+      <div className="flex-shrink-0 bg-stage-card border-b border-stage-border px-3 sm:px-4 py-2 pt-[calc(0.5rem+env(safe-area-inset-top))] flex items-center justify-between gap-2 shadow-md">
+
         {/* Left: Setlist and Position */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <span 
@@ -201,8 +226,8 @@ export const StageModeView: React.FC<StageModeViewProps> = ({
         )}
 
         {/* Right: Quick Stage Controls & Exit */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          
+        <div className="flex items-center justify-end gap-1.5 flex-wrap min-w-0 flex-1">
+
           {/* Quick Columns Toggle */}
           {onColumnsChange && (
             <div className="hidden md:flex items-center bg-stage-cardHover rounded-lg border border-stage-border p-0.5 text-xs font-mono font-bold">
@@ -224,7 +249,7 @@ export const StageModeView: React.FC<StageModeViewProps> = ({
           )}
 
           {/* Quick Auto-Scroll Toggle & Stepper */}
-          {onToggleAutoScroll && (
+          {onToggleAutoScroll && (isScrollable || isAutoScrolling) && (
             <div className="flex items-center gap-1 bg-stage-bg rounded-lg border border-stage-border p-0.5">
               <button
                 onClick={onToggleAutoScroll}
@@ -317,16 +342,17 @@ export const StageModeView: React.FC<StageModeViewProps> = ({
             )}
           </div>
 
-          {/* Exit Fullscreen Stage */}
-          <button
-            onClick={onExitStageMode}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-bold transition cursor-pointer"
-            title="Exit Stage Mode (Esc)"
-          >
-            <Minimize2 className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Exit</span>
-          </button>
         </div>
+
+        {/* Exit Fullscreen Stage: pinned top-right, same spot/size as the Stage Mode button */}
+        <button
+          onClick={onExitStageMode}
+          className="flex-shrink-0 self-start flex items-center gap-1.5 h-8 px-3 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-extrabold active:scale-95 transition cursor-pointer"
+          title="Exit Stage Mode (Esc)"
+        >
+          <Minimize2 className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Exit</span>
+        </button>
       </div>
 
       {/* Main Song Content Surface */}
