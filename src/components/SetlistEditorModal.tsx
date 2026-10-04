@@ -25,6 +25,33 @@ interface SetlistEditorModalProps {
   onSelectSetlist: (id: number | null) => void;
 }
 
+type SetlistSort = 'name' | 'date-desc' | 'date-asc';
+const SORT_KEY = 'nhac_setlist_sort';
+
+function loadSort(): SetlistSort {
+  try {
+    const v = localStorage.getItem(SORT_KEY);
+    if (v === 'name' || v === 'date-desc' || v === 'date-asc') return v;
+  } catch {
+    // storage unavailable: fall back to the default
+  }
+  return 'name';
+}
+
+const byName = (a: DBSetlist, b: DBSetlist) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+
+// Setlists without a gig date always sort last, by name
+function sortSetlists(list: DBSetlist[], sort: SetlistSort): DBSetlist[] {
+  return [...list].sort((a, b) => {
+    if (sort === 'name') return byName(a, b);
+    if (!a.gigDate && !b.gigDate) return byName(a, b);
+    if (!a.gigDate) return 1;
+    if (!b.gigDate) return -1;
+    const cmp = a.gigDate.localeCompare(b.gigDate); // ISO yyyy-mm-dd
+    return cmp === 0 ? byName(a, b) : sort === 'date-desc' ? -cmp : cmp;
+  });
+}
+
 export const SetlistEditorModal: React.FC<SetlistEditorModalProps> = ({
   isOpen,
   onClose,
@@ -39,6 +66,17 @@ export const SetlistEditorModal: React.FC<SetlistEditorModalProps> = ({
   );
 
   const currentSetlist = setlists.find((s) => s.id === selectedSetlistId);
+
+  const [sort, setSort] = useState<SetlistSort>(loadSort);
+  const sortedSetlists = useMemo(() => sortSetlists(setlists, sort), [setlists, sort]);
+  const handleSortChange = (value: SetlistSort) => {
+    setSort(value);
+    try {
+      localStorage.setItem(SORT_KEY, value);
+    } catch {
+      // not persisted; still applies for this session
+    }
+  };
 
   const [name, setName] = useState(currentSetlist?.name || 'New Gig Setlist');
   const [gigDate, setGigDate] = useState(currentSetlist?.gigDate || '');
@@ -193,7 +231,7 @@ export const SetlistEditorModal: React.FC<SetlistEditorModalProps> = ({
       if (confirm(`Are you sure you want to delete setlist "${name}"?`)) {
         await onDeleteSetlist(selectedSetlistId);
         if (setlists.length > 1) {
-          const remaining = setlists.filter((s) => s.id !== selectedSetlistId);
+          const remaining = sortedSetlists.filter((s) => s.id !== selectedSetlistId);
           handleSelectSetlist(remaining[0].id!);
         } else {
           handleSelectSetlist('new');
@@ -205,7 +243,7 @@ export const SetlistEditorModal: React.FC<SetlistEditorModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
       <div className="bg-stage-card border border-stage-border rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
         {/* Modal Header */}
         <div className="p-4 border-b border-stage-border flex items-center justify-between">
@@ -247,8 +285,19 @@ export const SetlistEditorModal: React.FC<SetlistEditorModalProps> = ({
               </button>
             </div>
 
+            <select
+              value={sort}
+              onChange={(e) => handleSortChange(e.target.value as SetlistSort)}
+              aria-label="Sort setlists"
+              className="mb-2 h-8 px-2 rounded-lg bg-stage-card border border-stage-border text-[11px] text-stage-text"
+            >
+              <option value="name">Sort: Name (A–Z)</option>
+              <option value="date-desc">Sort: Gig date (newest first)</option>
+              <option value="date-asc">Sort: Gig date (oldest first)</option>
+            </select>
+
             <div className="space-y-1.5 flex-1">
-              {setlists.map((st) => (
+              {sortedSetlists.map((st) => (
                 <button
                   key={st.id}
                   onClick={() => handleSelectSetlist(st.id!)}
