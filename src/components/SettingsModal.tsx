@@ -78,8 +78,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-stage-card border border-stage-border rounded-2xl w-full max-w-lg max-h-[calc(100dvh-2rem)] shadow-2xl overflow-hidden flex flex-col transition-colors duration-150">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <div className="bg-stage-card border border-stage-border rounded-2xl w-full max-w-lg max-h-[calc(100dvh-2rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))]shadow-2xl overflow-hidden flex flex-col transition-colors duration-150">
         {/* Modal Header */}
         <div className="p-4 shrink-0 border-b border-stage-border flex items-center justify-between">
           <div className="flex items-center gap-2.5">

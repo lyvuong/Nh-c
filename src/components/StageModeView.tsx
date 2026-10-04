@@ -162,10 +162,10 @@ export const StageModeView: React.FC<StageModeViewProps> = ({
     <div 
       ref={stageContainerRef}
       {...swipeHandlers}
-      className="stage-mode-view fixed inset-0 z-50 bg-stage-bg text-stage-text flex flex-col select-none overflow-hidden font-sans transition-colors duration-150"
+      className="stage-mode-view fixed inset-0 z-50 bg-stage-bg text-stage-text flex flex-col select-none overflow-hidden font-sans transition-colors duration-150 pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)]"
     >
       {/* Top Stage Control Bar */}
-      <div className="flex-shrink-0 bg-stage-card border-b border-stage-border px-3 sm:px-4 py-2 flex items-center justify-between gap-2 shadow-md flex-wrap">
+      <div className="flex-shrink-0 bg-stage-card border-b border-stage-border px-3 sm:px-4 py-2 pt-[calc(0.5rem+env(safe-area-inset-top))] flex items-center justify-between gap-2 shadow-md flex-wrap">
         
         {/* Left: Setlist and Position */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">

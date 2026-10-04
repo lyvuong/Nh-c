@@ -178,7 +178,7 @@ export const FolderImportModal: React.FC<FolderImportModalProps> = ({
   const selectedCount = scannedFiles.filter((f) => f.selected).length;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
       <input
         ref={fileInputRef}
         type="file"

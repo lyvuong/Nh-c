@@ -98,7 +98,7 @@ export const Header: React.FC<HeaderProps> = ({
     setIsPickerOpen(false);
   };
   return (
-    <header className="relative bg-stage-card border-b border-stage-border px-3 sm:px-4 py-2 flex items-center justify-between gap-2 z-40">
+    <header className="relative bg-stage-card border-b border-stage-border px-3 sm:px-4 py-2 pt-[calc(0.5rem+env(safe-area-inset-top))] flex items-center justify-between gap-2 z-40">
       {/* Left: Mobile Menu & Current Title */}
       <div className="relative flex items-center gap-2.5 min-w-0" ref={pickerRef}>
         <button

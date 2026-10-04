@@ -469,7 +469,7 @@ export function App() {
   );
 
   return (
-    <div className="flex h-screen w-screen bg-stage-bg text-stage-text overflow-hidden select-none">
+    <div className="flex h-screen w-screen bg-stage-bg text-stage-text overflow-hidden select-none pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)]">
       {/* Fullscreen Stage Mode View */}
       {isStageMode && parsedTransposedSong && (
         <StageModeView

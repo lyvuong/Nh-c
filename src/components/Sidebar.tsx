@@ -140,7 +140,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         } ${isCollapsedDesktop ? 'lg:hidden' : ''}`}
       >
         {/* Sidebar Header */}
-        <div className="p-3.5 border-b border-stage-border/70 flex items-center justify-between">
+        <div className="p-3.5 pt-[calc(0.875rem+env(safe-area-inset-top))] border-b border-stage-border/70 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <img 
               src="/favicon.svg" 
