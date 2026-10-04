@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { 
   ChevronDown,
   RotateCcw,
@@ -52,6 +52,32 @@ export const TransposeBar: React.FC<TransposeBarProps> = ({
   // Generate complete list of Major & Minor keys
   const majorKeys = useMemo(() => rootNotes, [rootNotes]);
   const minorKeys = useMemo(() => rootNotes.map((k) => `${k}m`), [rootNotes]);
+
+  // Only offer auto-scroll when the song overflows the screen (same as Stage Mode)
+  const [isScrollable, setIsScrollable] = useState(false);
+  useEffect(() => {
+    let ro: ResizeObserver | null = null;
+    const getEl = () => document.querySelector('.chordpro-scroll-surface') as HTMLElement | null;
+    const measure = () => {
+      const el = getEl();
+      setIsScrollable(!!el && el.scrollHeight > el.clientHeight + 10);
+    };
+    const timer = setTimeout(() => {
+      measure();
+      const el = getEl();
+      if (el && typeof ResizeObserver !== 'undefined') {
+        ro = new ResizeObserver(measure);
+        ro.observe(el);
+        if (el.firstElementChild) ro.observe(el.firstElementChild);
+      }
+    }, 100);
+    window.addEventListener('resize', measure);
+    return () => {
+      clearTimeout(timer);
+      ro?.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [zoomLevel, columns, currentKey]);
 
   return (
     <div className="bg-stage-card/90 backdrop-blur-md border-b border-stage-border px-3 py-2 flex flex-wrap items-center justify-between gap-2 shadow-lg sticky top-0 z-30 transition-all">
@@ -165,6 +191,7 @@ export const TransposeBar: React.FC<TransposeBarProps> = ({
         </div>
 
         {/* Auto-Scroll Toggle & Speed Stepper */}
+        {(isScrollable || isAutoScrolling) && (
         <div className="flex items-center gap-1 bg-stage-bg rounded-lg border border-stage-border p-0.5">
           <button
             onClick={onToggleAutoScroll}
@@ -206,6 +233,7 @@ export const TransposeBar: React.FC<TransposeBarProps> = ({
             </button>
           </div>
         </div>
+        )}
 
         {/* Edit Song Button */}
         <button

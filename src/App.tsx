@@ -146,6 +146,19 @@ export function App() {
     return songs.find((s) => s.id === activeSongId) || null;
   }, [songs, activeSongId]);
 
+  // Auto (fit-to-screen) layout has nothing to scroll, so stop auto-scroll when it's selected
+  useEffect(() => {
+    if (columnsPreference === 'auto') setIsAutoScrolling(false);
+  }, [columnsPreference]);
+
+  // Default scroll speed to half the song's tempo whenever the song changes
+  useEffect(() => {
+    const tempo = parseFloat(activeSong?.tempo || '');
+    if (tempo > 0) {
+      setScrollSpeedBpm(Math.max(10, Math.min(240, Math.round(tempo / 2))));
+    }
+  }, [activeSongId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Reset Transposition and update document title when song changes
   useEffect(() => {
     if (activeSong) {
