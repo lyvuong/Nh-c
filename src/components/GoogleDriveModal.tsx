@@ -23,8 +23,9 @@ import {
 import { 
   loadDriveConfig, 
   saveDriveConfig, 
-  extractFolderInfo, 
-  requestDriveAccessToken, 
+  extractFolderInfo,
+  extractFileId,
+  requestDriveAccessToken,
   fetchDriveFolderName, 
   fetchDriveFolderFiles,
   isSupportedChordFile,
@@ -93,6 +94,7 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
   const [shareSetlistId, setShareSetlistId] = useState<number | null>(null);
   const [shareFolder, setShareFolder] = useState<{ id: string; name: string } | null>(null);
   const [remoteSetlists, setRemoteSetlists] = useState<DriveFileItem[]>([]);
+  const [setlistLinkInput, setSetlistLinkInput] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -187,11 +189,69 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
     }
   };
 
-  const pullSetlistById = async (fileId: string, token: string) => {
-    const r = await pullSetlistFile(fileId, token);
+  const pullSetlistById = async (fileId: string, token?: string, apiKey?: string, resourceKey?: string) => {
+    const r = await pullSetlistFile(fileId, token, apiKey, false, resourceKey);
     setRemoteSetlists([]);
     setLibraryMessage(`Pulled "${r.name}": ${r.added} songs added, ${r.updated} updated. Your library songs were not changed.`);
     onSyncCompleted?.();
+  };
+
+  // Public mode: no sign-in, just the API key against a folder / file shared "Anyone with the link"
+  const publicApiKey = () => apiKeyInput.trim();
+
+  const handleFindPublicSetlists = async () => {
+    setErrorMessage(null);
+    setLibraryMessage(null);
+    const info = extractFolderInfo(folderInput);
+    if (!info?.folderId) {
+      setErrorMessage('Please enter a valid Google Drive folder URL or Folder ID first');
+      return;
+    }
+    if (!publicApiKey()) {
+      setErrorMessage('Please enter a Google API key in the configuration below');
+      return;
+    }
+    try {
+      setIsLibraryBusy(true);
+      const files = await listSetlistFiles(info.folderId, undefined, publicApiKey(), info.resourceKey);
+      setRemoteSetlists(files);
+      if (files.length === 0) {
+        setErrorMessage(
+          `No ${SETLIST_FILE_SUFFIX} files found. Make sure the folder is shared as "Anyone with the link" and the setlist was published to it.`
+        );
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Could not list setlists in that folder');
+    } finally {
+      setIsLibraryBusy(false);
+    }
+  };
+
+  const handlePullPublicSetlist = async (fileId: string, resourceKey?: string) => {
+    setErrorMessage(null);
+    setLibraryMessage(null);
+    try {
+      setIsLibraryBusy(true);
+      await pullSetlistById(fileId, undefined, publicApiKey(), resourceKey);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to pull the setlist');
+    } finally {
+      setIsLibraryBusy(false);
+    }
+  };
+
+  const handlePullSetlistLink = async () => {
+    const info = extractFileId(setlistLinkInput);
+    if (!info) {
+      setErrorMessage('Paste a valid Google Drive link to a setlist file');
+      return;
+    }
+    if (!publicApiKey()) {
+      setErrorMessage('Please enter a Google API key in the configuration below');
+      return;
+    }
+    await handlePullPublicSetlist(info.folderId, info.resourceKey);
+    setSetlistLinkInput('');
   };
 
   const handlePullSetlist = async () => {
@@ -990,6 +1050,62 @@ export const GoogleDriveModal: React.FC<GoogleDriveModalProps> = ({
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Public mode: pull one setlist (with its songs) from a link-shared folder or file, no sign-in */}
+          {activeTab === 'public' && (
+            <div className="p-3.5 rounded-xl bg-stage-bg border border-stage-border space-y-2.5">
+              <div className="flex items-center gap-2 text-stage-text font-bold text-xs">
+                <Music className="w-4 h-4 text-cyan-400" />
+                <span>Pull a Setlist</span>
+              </div>
+              <p className="text-[11px] text-stage-muted leading-relaxed">
+                Find setlists published to the folder above, or paste a link to one setlist file. Songs are saved as separate copies and your library songs are never changed.
+              </p>
+              <button
+                type="button"
+                onClick={handleFindPublicSetlists}
+                disabled={isLibraryBusy || isScanning || isSyncing}
+                className="px-4 h-9 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer disabled:opacity-50"
+              >
+                <Search className="w-3.5 h-3.5" />
+                <span>Find setlists in folder</span>
+              </button>
+              {remoteSetlists.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-[11px] text-stage-muted">Setlists in this folder — tap one to pull:</p>
+                  {remoteSetlists.map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      disabled={isLibraryBusy}
+                      onClick={() => handlePullPublicSetlist(f.id, extractFolderInfo(folderInput)?.resourceKey)}
+                      className="block w-full text-left px-3 py-2 rounded-lg bg-stage-card border border-stage-border text-xs text-stage-text cursor-pointer disabled:opacity-50"
+                    >
+                      {f.name.replace(SETLIST_FILE_SUFFIX, '')}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={setlistLinkInput}
+                  onChange={(e) => setSetlistLinkInput(e.target.value)}
+                  placeholder="Link to a setlist file (…stagechord-setlist.json)"
+                  className="flex-1 min-w-0 h-9 px-3 rounded-lg bg-stage-card border border-stage-border text-stage-text text-[11px] focus:outline-none focus:ring-1 focus:ring-stage-accent"
+                />
+                <button
+                  type="button"
+                  onClick={handlePullSetlistLink}
+                  disabled={isLibraryBusy || !setlistLinkInput.trim()}
+                  className="px-4 h-9 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer disabled:opacity-50 flex-shrink-0"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Pull</span>
+                </button>
+              </div>
             </div>
           )}
 

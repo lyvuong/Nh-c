@@ -19,6 +19,7 @@ export interface GoogleDriveConfig {
   // Drive modifiedTime last seen per pulled file id, so unchanged files aren't downloaded again
   pulledModifiedTimes?: Record<string, string>;
   pulledSetlistFileIds?: string[]; // setlist files pulled on this device, refreshed on app open
+  pulledSetlistResourceKeys?: Record<string, string>; // resource keys for those files, when the share link had one
   // Files picked via the Drive Picker (OAuth mode); drive.file can only read what the user picked
   pickedFiles?: DriveFileItem[];
 }
@@ -121,6 +122,18 @@ export function extractFolderInfo(input: string): ExtractedDriveInfo | null {
     return { folderId, resourceKey };
   }
   return null;
+}
+
+// Parse a Drive file link (/file/d/<id>, open?id=<id>, or a bare ID) plus its optional resource key
+export function extractFileId(input: string): ExtractedDriveInfo | null {
+  if (!input) return null;
+  const clean = input.trim();
+  const resourceKey = clean.match(/[?&]resourcekey=([a-zA-Z0-9_-]+)/i)?.[1];
+  const id =
+    clean.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)?.[1] ??
+    clean.match(/[?&]id=([a-zA-Z0-9_-]+)/)?.[1] ??
+    (/^[a-zA-Z0-9_-]{15,}$/.test(clean) ? clean : undefined);
+  return id ? { folderId: id, resourceKey } : null;
 }
 
 export function extractFolderId(input: string): string | null {
@@ -705,11 +718,16 @@ function rememberModifiedTime(fileId: string, modifiedTime?: string) {
   saveDriveConfig({ ...config, pulledModifiedTimes: { ...config.pulledModifiedTimes, [fileId]: modifiedTime } });
 }
 
-async function fetchModifiedTime(fileId: string, accessToken?: string, apiKey?: string): Promise<string | undefined> {
+async function fetchModifiedTime(
+  fileId: string,
+  accessToken?: string,
+  apiKey?: string,
+  resourceKey?: string
+): Promise<string | undefined> {
   let url = `https://www.googleapis.com/drive/v3/files/${fileId}?fields=modifiedTime&supportsAllDrives=true`;
   if (apiKey) url += `&key=${encodeURIComponent(apiKey)}`;
   try {
-    const res = await fetch(url, { headers: authHeaders(accessToken) });
+    const res = await fetch(url, { headers: authHeaders(accessToken, fileId, resourceKey) });
     return res.ok ? (await res.json()).modifiedTime : undefined;
   } catch {
     return undefined;
@@ -815,14 +833,19 @@ export async function publishSetlistToDrive(params: {
 
 // Setlist files in a folder. Under drive.file this may come back empty for files the app
 // did not create; callers then fall back to the Picker.
-export async function listSetlistFiles(folderId: string, accessToken: string): Promise<DriveFileItem[]> {
+// With an API key and no token it lists a folder shared "Anyone with the link".
+export async function listSetlistFiles(
+  folderId: string,
+  accessToken?: string,
+  apiKey?: string,
+  resourceKey?: string
+): Promise<DriveFileItem[]> {
   const q = encodeURIComponent(
     `'${folderId}' in parents and name contains '${SETLIST_FILE_SUFFIX}' and trashed = false`
   );
-  const res = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=${q}&supportsAllDrives=true&includeItemsFromAllDrives=true&fields=files(id,name,mimeType,modifiedTime)&pageSize=100`,
-    { headers: authHeaders(accessToken) }
-  );
+  let url = `https://www.googleapis.com/drive/v3/files?q=${q}&supportsAllDrives=true&includeItemsFromAllDrives=true&fields=files(id,name,mimeType,modifiedTime)&pageSize=100`;
+  if (apiKey) url += `&key=${encodeURIComponent(apiKey)}`;
+  const res = await fetch(url, { headers: authHeaders(accessToken, folderId, resourceKey) });
   if (!res.ok) throw new Error(`Failed to list setlists (${res.status}): ${await res.text()}`);
   return ((await res.json()).files ?? []).filter((f: DriveFileItem) => f.name.endsWith(SETLIST_FILE_SUFFIX));
 }
@@ -871,13 +894,19 @@ export async function importSetlistBundle(bundle: SetlistBundle): Promise<{ name
   return { name: bundle.setlist.name, added, updated };
 }
 
-export async function pullSetlistFile(fileId: string, accessToken?: string, apiKey?: string, onlyIfChanged = false) {
+export async function pullSetlistFile(
+  fileId: string,
+  accessToken?: string,
+  apiKey?: string,
+  onlyIfChanged = false,
+  resourceKey?: string
+) {
   // A cheap metadata check lets background/quick syncs skip downloading unchanged setlists
-  const modifiedTime = await fetchModifiedTime(fileId, accessToken, apiKey);
+  const modifiedTime = await fetchModifiedTime(fileId, accessToken, apiKey, resourceKey);
   if (onlyIfChanged && modifiedTime && loadDriveConfig().pulledModifiedTimes?.[fileId] === modifiedTime) {
     return { name: '', added: 0, updated: 0 };
   }
-  const raw = await fetchDriveFileContent(fileId, accessToken, apiKey, 'application/json');
+  const raw = await fetchDriveFileContent(fileId, accessToken, apiKey, 'application/json', resourceKey);
   const data = JSON.parse(raw);
   if (!isSetlistBundle(data)) throw new Error('This file is not a valid StageChord setlist.');
   const result = await importSetlistBundle(data);
@@ -885,7 +914,16 @@ export async function pullSetlistFile(fileId: string, accessToken?: string, apiK
   // Remember it so the next app open can refresh this setlist without a sign-in
   const config = loadDriveConfig();
   const ids = config.pulledSetlistFileIds ?? [];
-  if (!ids.includes(fileId)) saveDriveConfig({ ...config, pulledSetlistFileIds: [...ids, fileId] });
+  const keys = config.pulledSetlistResourceKeys ?? {};
+  const needsId = !ids.includes(fileId);
+  const needsKey = !!resourceKey && keys[fileId] !== resourceKey;
+  if (needsId || needsKey) {
+    saveDriveConfig({
+      ...config,
+      pulledSetlistFileIds: needsId ? [...ids, fileId] : ids,
+      pulledSetlistResourceKeys: needsKey ? { ...keys, [fileId]: resourceKey! } : keys,
+    });
+  }
   return result;
 }
 
@@ -917,7 +955,9 @@ export async function autoPullOnOpen(): Promise<{ added: number; updated: number
   }
 
   const results = await Promise.allSettled(
-    (config.pulledSetlistFileIds ?? []).map((id) => pullSetlistFile(id, undefined, apiKey, true))
+    (config.pulledSetlistFileIds ?? []).map((id) =>
+      pullSetlistFile(id, undefined, apiKey, true, config.pulledSetlistResourceKeys?.[id])
+    )
   );
   for (const r of results) {
     if (r.status === 'fulfilled') add(r.value);
@@ -1085,7 +1125,9 @@ export async function quickSyncFromSavedConfig(
   const apiKey = config.apiKey?.trim() || undefined;
   const setlistIds = config.pulledSetlistFileIds ?? [];
   const setlistResults = await Promise.allSettled(
-    setlistIds.map((id) => pullSetlistFile(id, accessToken, accessToken ? undefined : apiKey, true))
+    setlistIds.map((id) =>
+      pullSetlistFile(id, accessToken, accessToken ? undefined : apiKey, true, config.pulledSetlistResourceKeys?.[id])
+    )
   );
   for (const r of setlistResults) {
     if (r.status === 'fulfilled') {
