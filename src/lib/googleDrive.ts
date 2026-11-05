@@ -263,6 +263,13 @@ export async function showDrivePicker(options: {
     builder.setDeveloperKey(options.apiKey);
   }
 
+  // Under drive.file, Google only grants access to picked items when the Picker knows the Cloud
+  // project number (the numeric prefix of the OAuth Client ID); without it, opening shared folders fails.
+  const projectNumber = (loadDriveConfig().clientId || '').match(/^(\d+)-/)?.[1];
+  if (projectNumber) {
+    builder.setAppId(projectNumber);
+  }
+
   builder.build().setVisible(true);
 }
 
@@ -292,6 +299,10 @@ export async function requestDriveAccessToken(
           return;
         }
         resolve(tokenResponse.access_token);
+      },
+      // Fires when the sign-in popup is blocked or closed (common in iPad home-screen apps)
+      error_callback: (err: any) => {
+        reject(new Error(err?.message || `Google sign-in failed (${err?.type || 'unknown'})`));
       },
     });
 
