@@ -7,6 +7,7 @@ import {
   RefreshCw,
   Link as LinkIcon,
   Copy,
+  Share2,
   CheckCircle2,
   AlertCircle,
   CheckSquare,
@@ -187,6 +188,21 @@ export const SetlistSharingModal: React.FC<SetlistSharingModalProps> = ({
       setTimeout(() => setCopied(false), 2000);
     } catch {
       setError(`Copy failed. Your link is: ${ownFolder.url}`);
+    }
+  };
+
+  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+  const shareLink = async () => {
+    if (!ownFolder) return;
+    try {
+      await navigator.share({
+        title: 'StageChord setlists',
+        text: 'Here are my StageChord setlists. Paste this link under Share → Get from link:',
+        url: ownFolder.url,
+      });
+    } catch (e: any) {
+      // Closing the share sheet is not an error
+      if (e?.name !== 'AbortError') copyLink();
     }
   };
 
@@ -409,12 +425,12 @@ export const SetlistSharingModal: React.FC<SetlistSharingModalProps> = ({
                 <p className="font-bold text-stage-text">Your share link</p>
                 {ownFolder ? (
                   <>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <input
                         readOnly
                         value={ownFolder.url}
                         onFocus={(e) => e.currentTarget.select()}
-                        className="flex-1 min-w-0 h-9 px-3 rounded-lg bg-stage-card border border-stage-border text-stage-text font-mono text-[11px]"
+                        className="flex-1 min-w-[12rem] h-9 px-3 rounded-lg bg-stage-card border border-stage-border text-stage-text font-mono text-[11px]"
                       />
                       <button
                         onClick={copyLink}
@@ -423,6 +439,15 @@ export const SetlistSharingModal: React.FC<SetlistSharingModalProps> = ({
                         {copied ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                         <span>{copied ? 'Copied' : 'Copy link'}</span>
                       </button>
+                      {canShare && (
+                        <button
+                          onClick={shareLink}
+                          className="px-3 h-9 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer flex-shrink-0"
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                          <span>Share</span>
+                        </button>
+                      )}
                       <a
                         href={ownFolder.url}
                         target="_blank"
