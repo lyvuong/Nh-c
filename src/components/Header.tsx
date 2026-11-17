@@ -28,6 +28,7 @@ interface HeaderProps {
   updateAvailable?: boolean;
   onOpenFolderImport: () => void;
   onOpenGoogleDrive: () => void;
+  shareUpdateCount?: number;
   onToggleFavorite: () => void;
   driveConfig?: GoogleDriveConfig;
   quickSyncStatus?: {
@@ -62,6 +63,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSettings,
   onOpenFolderImport,
   onOpenGoogleDrive,
+  shareUpdateCount = 0,
   onToggleFavorite,
   driveConfig,
   quickSyncStatus,
@@ -245,14 +247,16 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={onOpenGoogleDrive}
           className="relative p-2 rounded-lg bg-stage-cardHover text-stage-muted hover:text-stage-text active:scale-95 transition border border-stage-border"
           title={
-            isDriveConfigured
-              ? `Connected to "${driveConfig?.folderName || 'Drive folder'}" — manage Google Drive sync`
-              : 'Connect a Google Drive shared folder'
+            shareUpdateCount > 0
+              ? `Share setlists — ${shareUpdateCount} update${shareUpdateCount === 1 ? '' : 's'} available`
+              : 'Share setlists via Google Drive'
           }
         >
           <Cloud className="w-4 h-4 text-cyan-400" />
-          {isDriveConfigured && (
-            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 border border-stage-card" />
+          {shareUpdateCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-amber-500 text-slate-950 text-[10px] font-extrabold leading-4 text-center border border-stage-card">
+              {shareUpdateCount}
+            </span>
           )}
         </button>
 

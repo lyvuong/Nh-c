@@ -23,6 +23,7 @@ interface SidebarProps {
   onCreateSong: () => void;
   onOpenFolderImport: () => void;
   onOpenGoogleDrive: () => void;
+  shareUpdateCount?: number;
   onOpenSetlistEditor: () => void;
   onOpenAbout: () => void;
   isOpenMobile: boolean;
@@ -42,6 +43,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCreateSong,
   onOpenFolderImport,
   onOpenGoogleDrive,
+  shareUpdateCount = 0,
   onOpenSetlistEditor,
   onOpenAbout,
   isOpenMobile,
@@ -216,10 +218,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             onClick={onOpenGoogleDrive}
             className="flex items-center justify-center gap-1 h-8 px-1.5 rounded-lg bg-stage-cardHover hover:bg-stage-border text-stage-text text-[11px] font-semibold border border-stage-border active:scale-95 transition"
-            title="Google Drive Cloud Sync"
+            title="Share setlists via Google Drive"
           >
             <Cloud className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
-            <span className="truncate">Drive</span>
+            <span className="truncate">Share</span>
+            {shareUpdateCount > 0 && (
+              <span className="min-w-4 h-4 px-1 rounded-full bg-amber-500 text-slate-950 text-[10px] font-extrabold leading-4 text-center">
+                {shareUpdateCount}
+              </span>
+            )}
           </button>
           <button
             onClick={onCreateSong}

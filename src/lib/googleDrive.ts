@@ -11,15 +11,11 @@ export interface GoogleDriveConfig {
   lastSyncTime?: number;
   publishFolderId?: string;
   publishFolderName?: string;
-  shareFolderId?: string; // folder chosen for per-setlist publish/pull
-  shareFolderName?: string;
   lastPublishTime?: number;
   syncMode?: 'oauth' | 'public' | 'local';
   autoSyncOnLoad?: boolean;
   // Drive modifiedTime last seen per pulled file id, so unchanged files aren't downloaded again
   pulledModifiedTimes?: Record<string, string>;
-  pulledSetlistFileIds?: string[]; // setlist files pulled on this device, refreshed on app open
-  pulledSetlistResourceKeys?: Record<string, string>; // resource keys for those files, when the share link had one
   // Files picked via the Drive Picker (OAuth mode); drive.file can only read what the user picked
   pickedFiles?: DriveFileItem[];
 }
@@ -40,8 +36,16 @@ export interface DriveFileItem {
 const STORAGE_KEY = 'nhac_gdrive_config';
 const SUPPORTED_EXTENSIONS = ['.cho', '.crd', '.chordpro', '.txt', '.pro', '.chopro'];
 
-// Default public fallback Client ID (users can also provide their own)
-export const DEFAULT_CLIENT_ID = '';
+// The Client ID and API key belong to the app, not the user: they are baked in at build time
+// (VITE_GOOGLE_CLIENT_ID / VITE_GOOGLE_DRIVE_API_KEY). Values saved on the device are only a
+// fallback for builds that don't ship them.
+export function resolveClientId(config: GoogleDriveConfig = loadDriveConfig()): string {
+  return (import.meta.env.VITE_GOOGLE_CLIENT_ID || config.clientId || '').trim();
+}
+
+export function resolveApiKey(config: GoogleDriveConfig = loadDriveConfig()): string {
+  return (import.meta.env.VITE_GOOGLE_DRIVE_API_KEY || config.apiKey || '').trim();
+}
 
 // Defaults baked in at build time via .env (VITE_GOOGLE_DRIVE_API_KEY / VITE_GOOGLE_DRIVE_FOLDER_URL),
 // so a pre-configured deployment doesn't require every user to paste in their own API key/folder link.
@@ -475,7 +479,7 @@ interface LibraryState {
   setlistUuids: string[];
 }
 
-async function ensureUuids(): Promise<void> {
+export async function ensureUuids(): Promise<void> {
   await db.songs.filter((s) => !s.uuid).modify((s) => {
     s.uuid = newUuid();
   });
@@ -518,7 +522,7 @@ function isLibrary(data: any): data is DriveLibrary {
   );
 }
 
-function authHeaders(accessToken?: string, fileOrFolderId?: string, resourceKey?: string) {
+export function authHeaders(accessToken?: string, fileOrFolderId?: string, resourceKey?: string) {
   const headers: Record<string, string> = {};
   if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
   if (resourceKey && fileOrFolderId) {
@@ -729,7 +733,7 @@ function rememberModifiedTime(fileId: string, modifiedTime?: string) {
   saveDriveConfig({ ...config, pulledModifiedTimes: { ...config.pulledModifiedTimes, [fileId]: modifiedTime } });
 }
 
-async function fetchModifiedTime(
+export async function fetchModifiedTime(
   fileId: string,
   accessToken?: string,
   apiKey?: string,
@@ -761,7 +765,7 @@ export interface SetlistBundle {
   songs: LibrarySong[];
 }
 
-function isSetlistBundle(data: any): data is SetlistBundle {
+export function isSetlistBundle(data: any): data is SetlistBundle {
   return (
     data &&
     data.format === 'stagechord-setlist' &&
@@ -772,7 +776,7 @@ function isSetlistBundle(data: any): data is SetlistBundle {
   );
 }
 
-function setlistFileName(name: string): string {
+export function setlistFileName(name: string): string {
   const safe = name.replace(/[\\/:*?"<>|']/g, '_').trim() || 'setlist';
   return `${safe}${SETLIST_FILE_SUFFIX}`;
 }
@@ -810,7 +814,7 @@ export async function publishSetlistToDrive(params: {
   setlistId: number;
   folderId: string;
   accessToken: string;
-}): Promise<{ songs: number; name: string }> {
+}): Promise<{ songs: number; name: string; fileId: string; modifiedTime?: string; publishedAt: number }> {
   const { setlistId, folderId, accessToken } = params;
   const bundle = await buildSetlistBundle(setlistId);
   const fileName = setlistFileName(bundle.setlist.name);
@@ -831,15 +835,22 @@ export async function publishSetlistToDrive(params: {
     `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(bundle)}\r\n` +
     `--${boundary}--`;
   const url = existing
-    ? `https://www.googleapis.com/upload/drive/v3/files/${existing.id}?uploadType=multipart&supportsAllDrives=true`
-    : `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true`;
+    ? `https://www.googleapis.com/upload/drive/v3/files/${existing.id}?uploadType=multipart&supportsAllDrives=true&fields=id,modifiedTime`
+    : `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,modifiedTime`;
   const res = await fetch(url, {
     method: existing ? 'PATCH' : 'POST',
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': `multipart/related; boundary=${boundary}` },
     body,
   });
   if (!res.ok) throw new Error(`Failed to publish setlist (${res.status}): ${await res.text()}`);
-  return { songs: bundle.songs.length, name: bundle.setlist.name };
+  const saved: { id: string; modifiedTime?: string } = await res.json();
+  return {
+    songs: bundle.songs.length,
+    name: bundle.setlist.name,
+    fileId: saved.id,
+    modifiedTime: saved.modifiedTime,
+    publishedAt: bundle.publishedAt,
+  };
 }
 
 // Setlist files in a folder. Under drive.file this may come back empty for files the app
@@ -861,25 +872,35 @@ export async function listSetlistFiles(
   return ((await res.json()).files ?? []).filter((f: DriveFileItem) => f.name.endsWith(SETLIST_FILE_SUFFIX));
 }
 
-export async function importSetlistBundle(bundle: SetlistBundle): Promise<{ name: string; added: number; updated: number }> {
+export interface ImportSetlistOptions {
+  // Overwrite the local copy even when its timestamps look newer (the user chose to take the update)
+  force?: boolean;
+  // Import as a separate setlist with its own songs instead of touching an existing copy
+  asCopy?: boolean;
+}
+
+export async function importSetlistBundle(
+  bundle: SetlistBundle,
+  opts: ImportSetlistOptions = {}
+): Promise<{ name: string; added: number; updated: number; setlistUuid: string }> {
   let added = 0;
   let updated = 0;
+  const setlistUuid = opts.asCopy ? newUuid() : bundle.setlist.uuid;
+  const name = opts.asCopy ? `${bundle.setlist.name} (copy)` : bundle.setlist.name;
   await db.transaction('rw', db.songs, db.setlists, async () => {
     await ensureUuids();
     const byUuid = new Map<string, DBSong>();
     for (const s of await db.songs.toArray()) byUuid.set(s.uuid!, s);
 
-    const setlistUuid = bundle.setlist.uuid;
     const idByOrigUuid = new Map<string, number>();
     for (const ls of bundle.songs) {
       const { uuid: origUuid, ...fields } = ls;
       // Already-forked songs keep their own identity; library songs become copies scoped to this setlist
-      const uuid = ls.forkedFrom ? origUuid : `${setlistUuid}:${origUuid}`;
+      const uuid = ls.forkedFrom && !opts.asCopy ? origUuid : `${setlistUuid}:${origUuid}`;
       const data = { ...fields, uuid, forkedFrom: ls.forkedFrom ?? origUuid };
       const local = byUuid.get(uuid);
       if (local?.id != null) {
-        // Only overwrite when the published copy is newer than this device's copy
-        if (ls.updatedAt > local.updatedAt) {
+        if (opts.force || ls.updatedAt > local.updatedAt) {
           await db.songs.update(local.id, data);
           updated++;
         }
@@ -890,89 +911,108 @@ export async function importSetlistBundle(bundle: SetlistBundle): Promise<{ name
       }
     }
 
-    const { uuid, songs: entries, ...fields } = bundle.setlist;
+    const { uuid: _u, songs: entries, ...fields } = bundle.setlist;
     const songs = entries
       .filter((e) => idByOrigUuid.has(e.songUuid))
-      .map(({ songUuid, ...opts }) => ({ songId: idByOrigUuid.get(songUuid)!, ...opts }));
-    const local = await db.setlists.where('uuid').equals(uuid).first();
+      .map(({ songUuid, ...o }) => ({ songId: idByOrigUuid.get(songUuid)!, ...o }));
+    const local = await db.setlists.where('uuid').equals(setlistUuid).first();
     if (local?.id != null) {
-      // Only overwrite when the pulled setlist is newer than this device's copy
-      if (fields.updatedAt > local.updatedAt) await db.setlists.update(local.id, { ...fields, songs });
+      if (opts.force || fields.updatedAt > local.updatedAt) {
+        await db.setlists.update(local.id, { ...fields, name, uuid: setlistUuid, songs });
+        // Drop setlist-specific song copies that the update removed from this setlist
+        const keep = new Set(songs.map((e) => e.songId));
+        const dropped = [...new Set(local.songs.map((e) => e.songId))].filter((id) => !keep.has(id));
+        if (dropped.length) {
+          const others = (await db.setlists.toArray()).filter((sl) => sl.id !== local.id);
+          const stillUsed = new Set(others.flatMap((sl) => sl.songs.map((e) => e.songId)));
+          for (const id of dropped) {
+            const song = await db.songs.get(id);
+            if (song?.forkedFrom && !stillUsed.has(id)) await db.songs.delete(id);
+          }
+        }
+      }
     } else {
-      await db.setlists.add({ ...fields, uuid, songs } as DBSetlist);
+      await db.setlists.add({ ...fields, name, uuid: setlistUuid, songs } as DBSetlist);
     }
   });
-  return { name: bundle.setlist.name, added, updated };
+  return { name, added, updated, setlistUuid };
 }
 
-export async function pullSetlistFile(
+// Download and validate one published setlist file.
+export async function fetchSetlistBundle(
   fileId: string,
   accessToken?: string,
   apiKey?: string,
-  onlyIfChanged = false,
   resourceKey?: string
-) {
-  // A cheap metadata check lets background/quick syncs skip downloading unchanged setlists
-  const modifiedTime = await fetchModifiedTime(fileId, accessToken, apiKey, resourceKey);
-  if (onlyIfChanged && modifiedTime && loadDriveConfig().pulledModifiedTimes?.[fileId] === modifiedTime) {
-    return { name: '', added: 0, updated: 0 };
-  }
+): Promise<SetlistBundle> {
   const raw = await fetchDriveFileContent(fileId, accessToken, apiKey, 'application/json', resourceKey);
   const data = JSON.parse(raw);
   if (!isSetlistBundle(data)) throw new Error('This file is not a valid StageChord setlist.');
-  const result = await importSetlistBundle(data);
-  rememberModifiedTime(fileId, modifiedTime);
-  // Remember it so the next app open can refresh this setlist without a sign-in
-  const config = loadDriveConfig();
-  const ids = config.pulledSetlistFileIds ?? [];
-  const keys = config.pulledSetlistResourceKeys ?? {};
-  const needsId = !ids.includes(fileId);
-  const needsKey = !!resourceKey && keys[fileId] !== resourceKey;
-  if (needsId || needsKey) {
-    saveDriveConfig({
-      ...config,
-      pulledSetlistFileIds: needsId ? [...ids, fileId] : ids,
-      pulledSetlistResourceKeys: needsKey ? { ...keys, [fileId]: resourceKey! } : keys,
-    });
-  }
-  return result;
+  return data;
 }
 
-// Silent refresh on app open: re-pull the published library and any setlists pulled before.
-// Only uses the saved API key (no sign-in popup), so folders/files must be shared "Anyone with
-// the link". Every failure is swallowed; the user can still pull manually.
+// The folder this app publishes setlists into; anyone with its link can read it.
+export const SHARE_FOLDER_NAME = 'StageChord Setlists';
+
+export function folderLink(folderId: string): string {
+  return `https://drive.google.com/drive/folders/${folderId}`;
+}
+
+export async function ensureShareFolder(
+  accessToken: string,
+  existingId?: string
+): Promise<{ id: string; name: string }> {
+  let folder: { id: string; name: string } | null = null;
+  if (existingId) {
+    const res = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${existingId}?fields=id,name,trashed&supportsAllDrives=true`,
+      { headers: authHeaders(accessToken) }
+    );
+    if (res.ok) {
+      const meta = await res.json();
+      if (!meta.trashed) folder = { id: meta.id, name: meta.name };
+    }
+  }
+  if (!folder) {
+    const res = await fetch('https://www.googleapis.com/drive/v3/files?fields=id,name', {
+      method: 'POST',
+      headers: { ...authHeaders(accessToken), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: SHARE_FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' }),
+    });
+    if (!res.ok) throw new Error(`Could not create the Drive folder (${res.status}): ${await res.text()}`);
+    folder = await res.json();
+  }
+  // Idempotent: keeps the link working even if the folder was un-shared since
+  const perm = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${folder!.id}/permissions?supportsAllDrives=true`,
+    {
+      method: 'POST',
+      headers: { ...authHeaders(accessToken), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'reader', type: 'anyone' }),
+    }
+  );
+  if (!perm.ok) throw new Error(`Could not share the Drive folder (${perm.status}): ${await perm.text()}`);
+  return folder!;
+}
+
+// Silent refresh on app open: re-pull the published library only (setlist updates are the user's call,
+// see setlistSharing.ts). Uses just the API key, so the folder must be shared "Anyone with the link".
 export async function autoPullOnOpen(): Promise<{ added: number; updated: number; removed: number }> {
   const total = { added: 0, updated: 0, removed: 0 };
   const config = loadDriveConfig();
-  const apiKey = config.apiKey?.trim();
-  if (!apiKey || config.syncMode === 'local' || !navigator.onLine) return total;
+  const apiKey = resolveApiKey(config);
+  if (!apiKey || config.syncMode === 'local' || !navigator.onLine || !config.folderId) return total;
 
-  const add = (r: { added: number; updated: number; removed?: number }) => {
-    total.added += r.added;
-    total.updated += r.updated;
-    total.removed += r.removed ?? 0;
-  };
-
-  if (config.folderId) {
-    try {
-      const r = await pullLibraryFromFolder(config.folderId, undefined, apiKey, config.resourceKey);
-      if (r && !r.skipped) {
-        add(r);
-        saveDriveConfig({ ...loadDriveConfig(), lastSyncTime: Date.now() });
-      }
-    } catch (e) {
-      console.warn('Auto-pull of library failed:', e);
+  try {
+    const r = await pullLibraryFromFolder(config.folderId, undefined, apiKey, config.resourceKey);
+    if (r && !r.skipped) {
+      total.added += r.added;
+      total.updated += r.updated;
+      total.removed += r.removed;
+      saveDriveConfig({ ...loadDriveConfig(), lastSyncTime: Date.now() });
     }
-  }
-
-  const results = await Promise.allSettled(
-    (config.pulledSetlistFileIds ?? []).map((id) =>
-      pullSetlistFile(id, undefined, apiKey, true, config.pulledSetlistResourceKeys?.[id])
-    )
-  );
-  for (const r of results) {
-    if (r.status === 'fulfilled') add(r.value);
-    else console.warn('Auto-pull of setlist failed:', r.reason);
+  } catch (e) {
+    console.warn('Auto-pull of library failed:', e);
   }
   return total;
 }
@@ -1131,23 +1171,6 @@ export async function quickSyncFromSavedConfig(
     folderName: config.folderName,
     onProgress,
   });
-
-  // Also refresh every setlist that was pulled before (songs + order), using the same credentials
-  const apiKey = config.apiKey?.trim() || undefined;
-  const setlistIds = config.pulledSetlistFileIds ?? [];
-  const setlistResults = await Promise.allSettled(
-    setlistIds.map((id) =>
-      pullSetlistFile(id, accessToken, accessToken ? undefined : apiKey, true, config.pulledSetlistResourceKeys?.[id])
-    )
-  );
-  for (const r of setlistResults) {
-    if (r.status === 'fulfilled') {
-      result.added += r.value.added;
-      result.updated += r.value.updated;
-    } else {
-      console.warn('Sync of pulled setlist failed:', r.reason);
-    }
-  }
 
   saveDriveConfig({ ...loadDriveConfig(), lastSyncTime: Date.now() });
   return result;

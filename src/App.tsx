@@ -18,6 +18,8 @@ import { SongEditorModal } from './components/SongEditorModal';
 import { SettingsModal } from './components/SettingsModal';
 import { AboutModal } from './components/AboutModal';
 import { GoogleDriveModal } from './components/GoogleDriveModal';
+import { SetlistSharingModal } from './components/SetlistSharingModal';
+import { countAvailableUpdates } from './lib/setlistSharing';
 import { loadDriveConfig, quickSyncFromSavedConfig, autoPullOnOpen, type GoogleDriveConfig } from './lib/googleDrive';
 import { AutoScrollController } from './components/AutoScrollController';
 import { applyThemeToDOM } from './lib/themeManager';
@@ -84,6 +86,8 @@ export function App() {
   }, []);
   const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
   const [isGoogleDriveOpen, setIsGoogleDriveOpen] = useState<boolean>(false);
+  const [isSharingOpen, setIsSharingOpen] = useState<boolean>(false);
+  const [shareUpdateCount, setShareUpdateCount] = useState<number>(0);
   const [driveConfig, setDriveConfig] = useState<GoogleDriveConfig>(() => loadDriveConfig());
   const [quickSyncStatus, setQuickSyncStatus] = useState<{
     state: 'idle' | 'syncing' | 'success' | 'error';
@@ -107,7 +111,14 @@ export function App() {
     initDefaultData(db);
   }, []);
 
-  // Silently refresh published library/setlists from Drive when the app opens
+  // On open (and whenever the sharing dialog closes), count pulled setlists that have a newer version.
+  // Nothing is overwritten: the user decides in the sharing dialog.
+  useEffect(() => {
+    if (isSharingOpen) return;
+    countAvailableUpdates().then(setShareUpdateCount).catch(() => {});
+  }, [isSharingOpen]);
+
+  // Silently refresh the published library from Drive when the app opens
   const autoPullStarted = useRef(false);
   useEffect(() => {
     if (autoPullStarted.current) return;
@@ -300,7 +311,7 @@ export function App() {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) {
         return;
       }
-      if (isSongEditorOpen || isSettingsOpen || isAboutOpen || isGoogleDriveOpen || isSetlistEditorOpen) {
+      if (isSongEditorOpen || isSettingsOpen || isAboutOpen || isGoogleDriveOpen || isSharingOpen || isSetlistEditorOpen) {
         return;
       }
 
@@ -318,7 +329,7 @@ export function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isSongEditorOpen, isSettingsOpen, isAboutOpen, isGoogleDriveOpen, isSetlistEditorOpen]);
+  }, [isSongEditorOpen, isSettingsOpen, isAboutOpen, isGoogleDriveOpen, isSharingOpen, isSetlistEditorOpen]);
 
   // Star / Favorite Toggle
   const handleToggleFavorite = async (songId?: number, e?: React.MouseEvent) => {
@@ -528,7 +539,8 @@ export function App() {
           setIsSongEditorOpen(true);
         }}
         onOpenFolderImport={() => setIsFolderImportOpen(true)}
-        onOpenGoogleDrive={() => setIsGoogleDriveOpen(true)}
+        onOpenGoogleDrive={() => setIsSharingOpen(true)}
+        shareUpdateCount={shareUpdateCount}
         onOpenSetlistEditor={() => setIsSetlistEditorOpen(true)}
         onOpenAbout={() => setIsAboutOpen(true)}
         isOpenMobile={isMobileSidebarOpen}
@@ -554,7 +566,8 @@ export function App() {
           onOpenSettings={() => setIsSettingsOpen(true)}
           updateAvailable={updateAvailable}
           onOpenFolderImport={() => setIsFolderImportOpen(true)}
-          onOpenGoogleDrive={() => setIsGoogleDriveOpen(true)}
+          onOpenGoogleDrive={() => setIsSharingOpen(true)}
+          shareUpdateCount={shareUpdateCount}
           onToggleFavorite={() => handleToggleFavorite()}
           driveConfig={driveConfig}
           quickSyncStatus={quickSyncStatus}
@@ -704,7 +717,13 @@ export function App() {
         onClose={() => setIsGoogleDriveOpen(false)}
         onOpenFolderImport={() => setIsFolderImportOpen(true)}
         onSyncCompleted={() => setDriveConfig(loadDriveConfig())}
-        activeSetlistId={activeSetlistId}
+      />
+
+      <SetlistSharingModal
+        isOpen={isSharingOpen}
+        onClose={() => setIsSharingOpen(false)}
+        onChanged={() => setDriveConfig(loadDriveConfig())}
+        onOpenDriveImport={() => setIsGoogleDriveOpen(true)}
       />
 
       {/* Floating Auto-Scroll Speed Controller HUD */}

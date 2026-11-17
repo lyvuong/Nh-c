@@ -8,6 +8,8 @@ declare const __IS_CLOUDFLARE__: boolean;
 interface ImportMetaEnv {
   /** Google API key (Drive API enabled) used to read "Anyone with the link" shared folders without login. */
   readonly VITE_GOOGLE_DRIVE_API_KEY?: string;
+  /** OAuth Web Client ID (drive.file scope only) used for the one-tap sign-in when publishing setlists. */
+  readonly VITE_GOOGLE_CLIENT_ID?: string;
   /** Default shared Google Drive folder URL/ID, pre-filled so users don't have to paste it in. */
   readonly VITE_GOOGLE_DRIVE_FOLDER_URL?: string;
 }
