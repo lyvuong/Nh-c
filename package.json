@@ -8,8 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "icons": "powershell -ExecutionPolicy Bypass -File scripts/resize-icons.ps1 && node scripts/create-svg-logo.mjs",
-    "bump:minor": "node scripts/bump-version.mjs"
+    "icons": "powershell -ExecutionPolicy Bypass -File scripts/resize-icons.ps1 && node scripts/create-svg-logo.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
