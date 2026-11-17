@@ -18,6 +18,7 @@ import {
 import { resolveApiKey, resolveClientId, saveDriveConfig, loadDriveConfig } from '../lib/googleDrive';
 import {
   describeSummary,
+  getDisplayName,
   getSources,
   listPublishStatuses,
   lookUpFolder,
@@ -88,6 +89,7 @@ export const SetlistSharingModal: React.FC<SetlistSharingModalProps> = ({
   const [ownFolder, setOwnFolder] = useState<{ id: string; name: string; url: string } | undefined>();
   const [toPublish, setToPublish] = useState<Set<number>>(new Set());
   const [copied, setCopied] = useState(false);
+  const [myName, setMyName] = useState(() => getDisplayName());
 
   const loadPublishList = useCallback(async () => {
     const { setlists, folder } = await listPublishStatuses();
@@ -170,7 +172,7 @@ export const SetlistSharingModal: React.FC<SetlistSharingModalProps> = ({
     setMessage(null);
     try {
       setBusy(true);
-      const r = await publishSetlists([...toPublish]);
+      const r = await publishSetlists([...toPublish], myName);
       setMessage(`Published ${r.published.length} setlist${r.published.length === 1 ? '' : 's'} to "${r.folder.name}".`);
       await loadPublishList();
     } catch (e: any) {
@@ -369,7 +371,10 @@ export const SetlistSharingModal: React.FC<SetlistSharingModalProps> = ({
                             <div className="flex items-center gap-2.5 min-w-0">
                               {on ? <CheckSquare className="w-4 h-4 text-cyan-400 flex-shrink-0" /> : <Square className="w-4 h-4 text-stage-muted flex-shrink-0" />}
                               <FileMusic className="w-3.5 h-3.5 text-stage-muted flex-shrink-0" />
-                              <span className="font-semibold text-xs text-stage-text truncate">{s.displayName}</span>
+                              <div className="min-w-0">
+                                <span className="font-semibold text-xs text-stage-text truncate block">{s.displayName}</span>
+                                {s.origin && <span className="text-[10px] text-stage-muted block truncate">{s.origin}</span>}
+                              </div>
                             </div>
                             <Badge {...b} />
                           </div>
@@ -469,6 +474,21 @@ export const SetlistSharingModal: React.FC<SetlistSharingModalProps> = ({
                 )}
               </div>
 
+              <div className="space-y-1">
+                <label className="font-mono font-bold text-stage-muted uppercase tracking-wider block">Your name</label>
+                <input
+                  type="text"
+                  value={myName}
+                  maxLength={40}
+                  onChange={(e) => setMyName(e.target.value)}
+                  placeholder="e.g. Anh"
+                  className="w-full h-9 px-3 rounded-lg bg-stage-bg border border-stage-border text-stage-text text-xs focus:outline-none focus:ring-1 focus:ring-stage-accent"
+                />
+                <p className="text-[11px] text-stage-muted">
+                  Shown to people you share with. Setlists you create credit you as the author, and the author is kept when others reshare them.
+                </p>
+              </div>
+
               {!hasClientId && (
                 <p className="text-[11px] text-rose-400">Publishing isn’t set up in this build (no Google Client ID).</p>
               )}
@@ -490,6 +510,7 @@ export const SetlistSharingModal: React.FC<SetlistSharingModalProps> = ({
                             {on ? <CheckSquare className="w-4 h-4 text-cyan-400 flex-shrink-0" /> : <Square className="w-4 h-4 text-stage-muted flex-shrink-0" />}
                             <div className="min-w-0">
                               <p className="font-semibold text-xs text-stage-text truncate">{s.name}</p>
+                              {s.origin && <p className="text-[10px] text-cyan-400 truncate">{s.origin}</p>}
                               <p className="text-[10px] text-stage-muted">
                                 {s.songCount} songs{s.publishedAt ? ` · published ${new Date(s.publishedAt).toLocaleString()}` : ''}
                               </p>
@@ -503,7 +524,7 @@ export const SetlistSharingModal: React.FC<SetlistSharingModalProps> = ({
                   <div className="flex justify-end">
                     <button
                       onClick={publishPicked}
-                      disabled={busy || toPublish.size === 0 || !hasClientId}
+                      disabled={busy || toPublish.size === 0 || !hasClientId || !myName.trim()}
                       className="px-5 h-10 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-500/20 active:scale-95 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
                     >
                       <Upload className="w-4 h-4" />

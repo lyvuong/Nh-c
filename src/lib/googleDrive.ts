@@ -31,6 +31,8 @@ export interface DriveFileItem {
   mimeType: string;
   modifiedTime?: string;
   size?: string;
+  // Public Drive file properties (set on publish) so a list can show who shared it before it is pulled
+  properties?: Record<string, string>;
 }
 
 const STORAGE_KEY = 'nhac_gdrive_config';
@@ -776,12 +778,22 @@ export function isSetlistBundle(data: any): data is SetlistBundle {
   );
 }
 
-export function setlistFileName(name: string): string {
+// A short id keeps two setlists with the same name from overwriting each other
+export function setlistFileName(name: string, uuid?: string): string {
   const safe = name.replace(/[\\/:*?"<>|']/g, '_').trim() || 'setlist';
-  return `${safe}${SETLIST_FILE_SUFFIX}`;
+  const tag = uuid ? `.${uuid.replace(/-/g, '').slice(0, 6)}` : '';
+  return `${safe}${tag}${SETLIST_FILE_SUFFIX}`;
 }
 
-export async function buildSetlistBundle(setlistId: number): Promise<SetlistBundle> {
+// "Sunday.a3f9c1.stagechord-setlist.json" -> "Sunday"
+export function setlistDisplayName(fileName: string): string {
+  return fileName.replace(SETLIST_FILE_SUFFIX, '').replace(/\.[0-9a-f]{6}$/i, '');
+}
+
+export async function buildSetlistBundle(
+  setlistId: number,
+  who: { author?: string; sharedBy?: string } = {}
+): Promise<SetlistBundle> {
   await ensureUuids();
   const setlist = await db.setlists.get(setlistId);
   if (!setlist) throw new Error('Setlist not found');
@@ -802,6 +814,8 @@ export async function buildSetlistBundle(setlistId: number): Promise<SetlistBund
     setlist: {
       ...fields,
       uuid: uuid!,
+      author: who.author ?? fields.author,
+      sharedBy: who.sharedBy ?? fields.sharedBy,
       songs: entries
         .filter((e) => uuidById.has(e.songId))
         .map(({ songId, ...opts }) => ({ songUuid: uuidById.get(songId)!, ...opts })),
@@ -814,10 +828,12 @@ export async function publishSetlistToDrive(params: {
   setlistId: number;
   folderId: string;
   accessToken: string;
+  author?: string;
+  sharedBy?: string;
 }): Promise<{ songs: number; name: string; fileId: string; modifiedTime?: string; publishedAt: number }> {
   const { setlistId, folderId, accessToken } = params;
-  const bundle = await buildSetlistBundle(setlistId);
-  const fileName = setlistFileName(bundle.setlist.name);
+  const bundle = await buildSetlistBundle(setlistId, { author: params.author, sharedBy: params.sharedBy });
+  const fileName = setlistFileName(bundle.setlist.name, bundle.setlist.uuid);
 
   const q = encodeURIComponent(`'${folderId}' in parents and name = '${fileName.replace(/'/g, "\\'")}' and trashed = false`);
   const found = await fetch(
@@ -829,6 +845,11 @@ export async function publishSetlistToDrive(params: {
 
   const boundary = `stagechord-${newUuid()}`;
   const metadata: Record<string, unknown> = { name: fileName, mimeType: 'application/json' };
+  // Drive caps a property key+value at 124 bytes, so keep names short
+  const properties: Record<string, string> = {};
+  if (bundle.setlist.author) properties.author = bundle.setlist.author.slice(0, 40);
+  if (bundle.setlist.sharedBy) properties.sharedBy = bundle.setlist.sharedBy.slice(0, 40);
+  if (Object.keys(properties).length) metadata.properties = properties;
   if (!existing) metadata.parents = [folderId];
   const body =
     `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
@@ -865,7 +886,7 @@ export async function listSetlistFiles(
   const q = encodeURIComponent(
     `'${folderId}' in parents and name contains '${SETLIST_FILE_SUFFIX}' and trashed = false`
   );
-  let url = `https://www.googleapis.com/drive/v3/files?q=${q}&supportsAllDrives=true&includeItemsFromAllDrives=true&fields=files(id,name,mimeType,modifiedTime)&pageSize=100`;
+  let url = `https://www.googleapis.com/drive/v3/files?q=${q}&supportsAllDrives=true&includeItemsFromAllDrives=true&fields=files(id,name,mimeType,modifiedTime,properties)&pageSize=100`;
   if (apiKey) url += `&key=${encodeURIComponent(apiKey)}`;
   const res = await fetch(url, { headers: authHeaders(accessToken, folderId, resourceKey) });
   if (!res.ok) throw new Error(`Failed to list setlists (${res.status}): ${await res.text()}`);
@@ -887,6 +908,7 @@ export async function importSetlistBundle(
   let updated = 0;
   const setlistUuid = opts.asCopy ? newUuid() : bundle.setlist.uuid;
   const name = opts.asCopy ? `${bundle.setlist.name} (copy)` : bundle.setlist.name;
+  let uniqueName = name;
   await db.transaction('rw', db.songs, db.setlists, async () => {
     await ensureUuids();
     const byUuid = new Map<string, DBSong>();
@@ -916,9 +938,20 @@ export async function importSetlistBundle(
       .filter((e) => idByOrigUuid.has(e.songUuid))
       .map(({ songUuid, ...o }) => ({ songId: idByOrigUuid.get(songUuid)!, ...o }));
     const local = await db.setlists.where('uuid').equals(setlistUuid).first();
+    // Never merge by name: a second setlist with the same name gets the publisher's name added
+    const taken = new Set(
+      (await db.setlists.toArray()).filter((o) => o.uuid !== setlistUuid).map((o) => o.name.toLowerCase())
+    );
+    let finalName = name;
+    if (taken.has(finalName.toLowerCase())) {
+      const who = (bundle.setlist.sharedBy || bundle.setlist.author || '').trim() || 'shared';
+      finalName = `${name} (${who})`;
+      for (let n = 2; taken.has(finalName.toLowerCase()); n++) finalName = `${name} (${who} ${n})`;
+    }
+    uniqueName = finalName;
     if (local?.id != null) {
       if (opts.force || fields.updatedAt > local.updatedAt) {
-        await db.setlists.update(local.id, { ...fields, name, uuid: setlistUuid, songs });
+        await db.setlists.update(local.id, { ...fields, name: finalName, uuid: setlistUuid, songs });
         // Drop setlist-specific song copies that the update removed from this setlist
         const keep = new Set(songs.map((e) => e.songId));
         const dropped = [...new Set(local.songs.map((e) => e.songId))].filter((id) => !keep.has(id));
@@ -932,10 +965,10 @@ export async function importSetlistBundle(
         }
       }
     } else {
-      await db.setlists.add({ ...fields, name, uuid: setlistUuid, songs } as DBSetlist);
+      await db.setlists.add({ ...fields, name: finalName, uuid: setlistUuid, songs } as DBSetlist);
     }
   });
-  return { name, added, updated, setlistUuid };
+  return { name: uniqueName, added, updated, setlistUuid };
 }
 
 // Download and validate one published setlist file.

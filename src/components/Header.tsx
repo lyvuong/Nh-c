@@ -175,7 +175,10 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => pick(st.id!)}
                 className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-xs text-stage-text hover:bg-stage-cardHover transition"
               >
-                <span className="truncate">{st.name}</span>
+                <span className="truncate">
+                  {st.name}
+                  {st.sharedBy && <span className="text-stage-muted"> · from {st.sharedBy}</span>}
+                </span>
                 <span className="flex items-center gap-2 flex-shrink-0 text-stage-muted font-mono">
                   {st.songs.length}
                   {activeSetlist?.id === st.id && <Check className="w-3.5 h-3.5 text-stage-accent" />}

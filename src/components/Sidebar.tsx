@@ -199,7 +199,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <option value="ALL">🎵 All Songs ({songs.length})</option>
             {setlists.map((st) => (
               <option key={st.id} value={st.id}>
-                📋 {st.name} ({st.songs.length})
+                📋 {st.name} ({st.songs.length}){st.sharedBy ? ` · from ${st.sharedBy}` : ''}
               </option>
             ))}
           </select>

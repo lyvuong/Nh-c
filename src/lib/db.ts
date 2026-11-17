@@ -35,6 +35,8 @@ export interface DBSetlist {
   description?: string;
   songs: DBSetlistSong[];
   gigDate?: string;
+  author?: string; // who first created and published it; copied unchanged when a setlist is reshared
+  sharedBy?: string; // who published the copy this device pulled (only set on pulled setlists)
   createdAt: number;
   updatedAt: number;
 }

@@ -1,7 +1,6 @@
 import { db, type DBSetlist, type DBSong } from './db';
 import {
   type DriveFileItem,
-  SETLIST_FILE_SUFFIX,
   ensureShareFolder,
   ensureUuids,
   extractFolderInfo,
@@ -11,6 +10,7 @@ import {
   importSetlistBundle,
   listSetlistFiles,
   publishSetlistToDrive,
+  setlistDisplayName,
   requestDriveAccessToken,
   resolveApiKey,
   resolveClientId,
@@ -113,6 +113,7 @@ export interface RemoteSetlist {
   file: DriveFileItem;
   displayName: string;
   status: PullStatus;
+  origin: string; // "by Anh · shared by Minh", empty for files published before authors existed
 }
 
 export interface UpdateSummary {
@@ -153,7 +154,32 @@ async function statusOf(file: DriveFileItem, state: ShareState): Promise<PullSta
   return localChanged ? 'localChanged' : 'current';
 }
 
-const displayNameOf = (f: DriveFileItem) => f.name.replace(SETLIST_FILE_SUFFIX, '');
+const displayNameOf = (f: DriveFileItem) => setlistDisplayName(f.name);
+
+// "by Anh · shared by Minh" (either part may be missing)
+export function describeOrigin(author?: string, sharedBy?: string): string {
+  const parts: string[] = [];
+  if (author) parts.push(`by ${author}`);
+  if (sharedBy && sharedBy !== author) parts.push(`shared by ${sharedBy}`);
+  return parts.join(' · ');
+}
+
+// The name shown to people you share with. A plain label, not a verified identity.
+const NAME_KEY = 'nhac_display_name';
+export function getDisplayName(): string {
+  try {
+    return localStorage.getItem(NAME_KEY)?.trim() ?? '';
+  } catch {
+    return '';
+  }
+}
+export function setDisplayName(name: string): void {
+  try {
+    localStorage.setItem(NAME_KEY, name.trim());
+  } catch {
+    /* storage unavailable */
+  }
+}
 
 // List the setlists in a shared folder link (no sign-in) and say what each one needs
 export async function lookUpFolder(
@@ -169,7 +195,12 @@ export async function lookUpFolder(
   const state = await loadState();
   const setlists: RemoteSetlist[] = [];
   for (const file of files) {
-    setlists.push({ file, displayName: displayNameOf(file), status: await statusOf(file, state) });
+    setlists.push({
+      file,
+      displayName: displayNameOf(file),
+      status: await statusOf(file, state),
+      origin: describeOrigin(file.properties?.author, file.properties?.sharedBy),
+    });
   }
   setlists.sort((a, b) => a.displayName.localeCompare(b.displayName));
 
@@ -304,6 +335,7 @@ export type PublishStatus = 'new' | 'changed' | 'current';
 export interface LocalSetlistStatus {
   id: number;
   name: string;
+  origin: string;
   songCount: number;
   status: PublishStatus;
   publishedAt?: number;
@@ -320,7 +352,14 @@ export async function listPublishStatuses(): Promise<{
     const rec = state.published[sl.uuid!];
     let status: PublishStatus = 'new';
     if (rec) status = (await fingerprintOf(sl)) > rec.fingerprint ? 'changed' : 'current';
-    out.push({ id: sl.id!, name: sl.name, songCount: sl.songs.length, status, publishedAt: rec?.publishedAt });
+    out.push({
+      id: sl.id!,
+      name: sl.name,
+      origin: sl.sharedBy ? describeOrigin(sl.author, sl.sharedBy) : '',
+      songCount: sl.songs.length,
+      status,
+      publishedAt: rec?.publishedAt,
+    });
   }
   out.sort((a, b) => a.name.localeCompare(b.name));
   const f = state.ownFolder;
@@ -329,8 +368,12 @@ export async function listPublishStatuses(): Promise<{
 
 // Publish the chosen setlists into the app's own link-shared folder (created on first use)
 export async function publishSetlists(
-  setlistIds: number[]
+  setlistIds: number[],
+  displayName: string
 ): Promise<{ published: string[]; folder: { id: string; name: string; url: string } }> {
+  const me = displayName.trim();
+  if (!me) throw new Error('Enter your name first. It is shown to the people you share with.');
+  setDisplayName(me);
   // Sign-in first so the popup is tied to the user's tap
   const token = await getAccessToken();
   const state = await loadState();
@@ -339,9 +382,23 @@ export async function publishSetlists(
     s.ownFolder = folder;
   });
 
+  const pulledUuids = new Set(Object.values(state.pulled).map((r) => r.setlistUuid));
   const published: string[] = [];
   for (const id of setlistIds) {
-    const r = await publishSetlistToDrive({ setlistId: id, folderId: folder.id, accessToken: token });
+    const before = await db.setlists.get(id);
+    if (!before) continue;
+    // The author is set once and never replaced. A setlist pulled before authors existed stays blank
+    // rather than crediting whoever reshares it.
+    const author = before.author ?? (pulledUuids.has(before.uuid!) ? undefined : me);
+    const r = await publishSetlistToDrive({
+      setlistId: id,
+      folderId: folder.id,
+      accessToken: token,
+      author,
+      sharedBy: me,
+    });
+    // Remember the author locally (does not count as an edit)
+    if (author && !before.author) await db.setlists.update(id, { author });
     const setlist = await db.setlists.get(id);
     if (!setlist) continue;
     const fingerprint = await fingerprintOf(setlist);

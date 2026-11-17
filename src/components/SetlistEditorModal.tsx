@@ -311,6 +311,7 @@ export const SetlistEditorModal: React.FC<SetlistEditorModalProps> = ({
                     <div className="text-xs font-bold truncate">{st.name}</div>
                     <div className="text-[10px] opacity-70 font-mono">
                       {st.songs.length} songs {st.gigDate ? `• ${st.gigDate}` : ''}
+                      {st.sharedBy ? ` • from ${st.sharedBy}` : ''}
                     </div>
                   </div>
                 </button>
