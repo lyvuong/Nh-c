@@ -443,6 +443,28 @@ export function App() {
     }
   };
 
+  // Remove every song that is in no setlist, keeping starred ones
+  const handleRemoveUnusedSongs = async () => {
+    const allSetlists = await db.setlists.toArray();
+    const used = new Set<number>();
+    allSetlists.forEach((sl) => sl.songs.forEach((e) => used.add(e.songId)));
+    const allSongs = await db.songs.toArray();
+    const unused = allSongs.filter((s) => s.id !== undefined && !used.has(s.id) && !s.isFavorite);
+    if (unused.length === 0) {
+      alert('No unused songs to remove. Every song is in a setlist or starred.');
+      return;
+    }
+    if (!confirm(`Delete ${unused.length} song${unused.length === 1 ? '' : 's'} that are not in any setlist (starred songs are kept)? This cannot be undone.`)) {
+      return;
+    }
+    const ids = unused.map((s) => s.id!);
+    await db.songs.bulkDelete(ids);
+    if (activeSongId !== null && ids.includes(activeSongId)) {
+      const next = allSongs.find((s) => !ids.includes(s.id!));
+      setActiveSongId(next?.id ?? null);
+    }
+  };
+
   // Backup Export
   const handleExportBackup = async () => {
     const allSongs = await db.songs.toArray();
@@ -704,6 +726,7 @@ export function App() {
         onExportBackup={handleExportBackup}
         onImportBackup={handleImportBackup}
         onResetSampleLibrary={() => initDefaultData(db)}
+        onRemoveUnusedSongs={handleRemoveUnusedSongs}
         onOpenAbout={() => setIsAboutOpen(true)}
       />
 

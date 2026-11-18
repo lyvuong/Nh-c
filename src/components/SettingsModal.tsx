@@ -9,7 +9,8 @@ import {
   Info,
   RefreshCw,
   Sparkles,
-  AlertTriangle
+  AlertTriangle,
+  Trash2
 } from 'lucide-react';
 import { STAGE_THEMES, CHORD_COLORS } from '../lib/themeManager';
 import { DISPLAY_VERSION } from '../utils/version';
@@ -28,6 +29,7 @@ interface SettingsModalProps {
   onExportBackup: () => void;
   onImportBackup: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onResetSampleLibrary: () => void;
+  onRemoveUnusedSongs: () => void;
   onOpenAbout?: () => void;
 }
 
@@ -44,6 +46,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onExportBackup,
   onImportBackup,
   onResetSampleLibrary,
+  onRemoveUnusedSongs,
   onOpenAbout,
 }) => {
   type UpdateState = 'idle' | 'checking' | 'current' | 'available' | 'error' | 'installing';
@@ -286,6 +289,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             >
               <RotateCcw className="w-3 h-3" />
               <span>Restore Pre-loaded Sample Songs</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onRemoveUnusedSongs}
+              className="w-full p-2 text-center text-stage-muted hover:text-red-400 text-xs flex items-center justify-center gap-1 transition cursor-pointer"
+            >
+              <Trash2 className="w-3 h-3" />
+              <span>Remove Songs Not in Any Setlist (keeps starred)</span>
             </button>
           </div>
         </div>
