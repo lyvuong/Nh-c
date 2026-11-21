@@ -295,6 +295,40 @@ function parseLineTokens(line: string): SongLine {
   };
 }
 
+// Rewrites raw ChordPro source with every chord (and the {key:} directive) shifted by `semitones`.
+// Returns the new source plus the resulting key (if known).
+export function transposeChordProSource(
+  text: string,
+  semitones: number,
+  preferFlats?: boolean
+): { content: string; key?: string } {
+  const sectionRe = /^\[?(Verse\s*\d*|Chorus\s*\d*|Bridge\s*\d*|Intro|Outro|Solo|Pre-Chorus|Tag|Interlude)\]?:?$/i;
+  let newKey: string | undefined;
+  let keyFound = false;
+
+  const out = text.split(/(\r?\n)/).map((part) => {
+    if (part === '\n' || part === '\r\n') return part;
+    const trimmed = part.trim();
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      const m = part.match(/^(\s*\{\s*(?:key|k)\s*:\s*)([^}]*?)(\s*\}\s*)$/i);
+      if (m && m[2]) {
+        keyFound = true;
+        newKey = transposeChord(m[2], semitones, preferFlats);
+        return `${m[1]}${newKey}${m[3]}`;
+      }
+      return part;
+    }
+    if (sectionRe.test(trimmed)) return part;
+    return part.replace(/\[([^\]]+)\]/g, (_all, chord: string) => `[${transposeChord(chord.trim(), semitones, preferFlats)}]`);
+  }).join('');
+
+  if (!keyFound) {
+    const detected = parseChordPro(text).metadata.key;
+    if (detected) newKey = transposeChord(detected, semitones, preferFlats);
+  }
+  return { content: out, key: newKey };
+}
+
 export function transposeParsedSong(song: ParsedSong, semitones: number, preferFlats?: boolean): ParsedSong {
   const newKey = song.metadata.key ? transposeChord(song.metadata.key, semitones, preferFlats) : undefined;
 

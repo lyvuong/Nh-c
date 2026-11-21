@@ -8,7 +8,8 @@ import {
   Plus,
   ZoomIn, 
   ZoomOut, 
-  Edit3
+  Edit3,
+  Save
 } from 'lucide-react';
 import { ROOT_NOTES_SHARP, ROOT_NOTES_FLAT } from '../lib/chordTransposer';
 
@@ -18,6 +19,7 @@ interface TransposeBarProps {
   semitones: number;
   onResetTranspose: () => void;
   onSelectKey: (targetKey: string) => void;
+  onSaveKey: () => void;
   zoomLevel: number;
   onZoomChange: (delta: number) => void;
   columns: 'auto' | 1;
@@ -36,6 +38,7 @@ export const TransposeBar: React.FC<TransposeBarProps> = ({
   semitones,
   onResetTranspose,
   onSelectKey,
+  onSaveKey,
   zoomLevel,
   onZoomChange,
   columns,
@@ -123,6 +126,16 @@ export const TransposeBar: React.FC<TransposeBarProps> = ({
         </div>
 
         {/* Reset Transpose Button */}
+        {semitones !== 0 && (
+          <button
+            onClick={onSaveKey}
+            className="flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-stage-accent text-slate-950 hover:opacity-90 text-xs font-bold transition shadow-sm"
+            title={`Save this song permanently in ${currentKey}`}
+          >
+            <Save className="w-3.5 h-3.5" />
+            <span>Save in {currentKey}</span>
+          </button>
+        )}
         {semitones !== 0 ? (
           <button
             onClick={onResetTranspose}

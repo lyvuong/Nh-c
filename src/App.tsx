@@ -4,7 +4,7 @@ import { useSwipe } from './utils/useSwipe';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type DBSong, type DBSetlist } from './lib/db';
 import { initDefaultData } from './lib/sampleSongs';
-import { parseChordPro, transposeParsedSong, type ParsedSong } from './lib/chordParser';
+import { parseChordPro, transposeParsedSong, transposeChordProSource, type ParsedSong } from './lib/chordParser';
 import { getSemitoneDistance } from './lib/chordTransposer';
 
 import { Header } from './components/Header';
@@ -432,6 +432,21 @@ export function App() {
     }
   };
 
+  // Permanently save the current transposition into the song (no Edit mode needed)
+  const handleSaveTransposedKey = async () => {
+    if (!activeSong?.id || semitones === 0) return;
+    const { content, key } = transposeChordProSource(activeSong.content, semitones, preferFlats);
+    const newKey = key ?? activeSong.key;
+    const inSetlist = !!activeSetlist && activeSetlist.songs.some((e) => e.songId === activeSong.id) && !activeSong.forkedFrom;
+    const msg = inSetlist
+      ? `Save "${activeSong.title}" in the key of ${newKey}? This setlist gets its own copy; the library original stays unchanged.`
+      : `Save "${activeSong.title}" in the key of ${newKey}? This overwrites the current chart (was ${activeSong.key ?? 'original key'}).`;
+    if (!confirm(msg)) return;
+    const { id, ...rest } = activeSong;
+    await handleSaveSong({ ...rest, content, key: newKey, updatedAt: Date.now() }, id);
+    setSemitones(0);
+  };
+
   // Delete Song
   const handleDeleteSong = async (id: number) => {
     await db.songs.delete(id);
@@ -604,6 +619,7 @@ export function App() {
             semitones={semitones}
             onResetTranspose={handleResetTranspose}
             onSelectKey={handleSelectKey}
+            onSaveKey={handleSaveTransposedKey}
             zoomLevel={zoomLevel}
             onZoomChange={(delta) => setZoomLevel((z) => Math.max(0.6, Math.min(1.8, z + delta)))}
             columns={columnsPreference}
